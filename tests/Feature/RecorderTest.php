@@ -1,0 +1,116 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Str;
+use Packstub\SessionReplay\Facades\SessionReplay;
+use Packstub\SessionReplay\Support\ContextToken;
+
+function recorderConfig(string $html): array
+{
+    preg_match('/window\.__sessionReplay=(\{.*?\});<\/script>/s', $html, $match);
+
+    return json_decode($match[1] ?? 'null', true) ?? [];
+}
+
+it('renders the recorder for a signed-in person, with a token that names them', function () {
+    $user = $this->user();
+
+    $html = $this->actingAs($user)->get('page')->assertOk()->getContent();
+    $config = recorderConfig($html);
+    $token = ContextToken::decode($config['token']);
+
+    expect($html)->toContain('scripts/recorder.js?v=')
+        ->and($config['ingestUrl'])->toBe(route('session-replay.ingest'))
+        ->and($config['privacy']['maskAllInputs'])->toBeTrue()
+        ->and($config['size']['stripAttributes'])->toContain('wire:*')
+        ->and($config['cookie'])->toBe('session_replay_id')
+        ->and($token->userId)->toBe((string) $user->id)
+        ->and($token->userType)->toBe($user->getMorphClass())
+        ->and($token->tenantId)->toBeNull();
+});
+
+it('renders nothing for guests, excluded paths, a false recordWhen or the master switch', function () {
+    $this->get('page')->assertOk()->assertDontSee('__sessionReplay', false);
+
+    config()->set('session-replay.guests', true);
+    $this->get('page')->assertSee('__sessionReplay', false);
+
+    config()->set('session-replay.except', ['admin/secrets*']);
+    $this->actingAs($staff = $this->user(['is_staff' => true]))->get('admin/secrets/keys')->assertDontSee('__sessionReplay', false);
+
+    SessionReplay::recordWhen(fn ($user, $request) => ! $user?->is_staff);
+    $this->actingAs($staff)->get('page')->assertDontSee('__sessionReplay', false);
+    $this->actingAs($this->user())->get('page')->assertSee('__sessionReplay', false);
+
+    config()->set('session-replay.enabled', false);
+    $this->actingAs($this->user())->get('page')->assertDontSee('__sessionReplay', false);
+});
+
+it('never records its own pages', function () {
+    config()->set('session-replay.guests', true);
+
+    $request = Request::create('/session-replay/'.Str::uuid());
+
+    expect(SessionReplay::shouldRecord($request))->toBeFalse()
+        ->and(SessionReplay::shouldRecord(Request::create('/orders')))->toBeTrue();
+});
+
+it('signs the workspace, the impersonator and the app\'s properties into the token', function () {
+    $user = $this->user();
+    $team = $this->team();
+
+    SessionReplay::tenantUsing(fn () => $team)
+        ->impersonatorUsing(fn () => 42)
+        ->propertiesUsing(fn () => ['plan' => 'pro']);
+
+    $this->actingAs($user);
+
+    $token = ContextToken::decode(recorderConfig((string) SessionReplay::recorder(['properties' => ['panel' => 'admin']]))['token']);
+
+    expect($token->tenantType)->toBe($team->getMorphClass())
+        ->and($token->tenantId)->toBe((string) $team->id)
+        ->and($token->impersonatorId)->toBe('42')
+        ->and($token->properties)->toBe(['plan' => 'pro', 'panel' => 'admin']);
+});
+
+it('takes the person and the workspace from the caller when a panel knows better', function () {
+    $other = $this->user();
+    $team = $this->team('Globex');
+
+    // Nobody on the default guard; the panel's guard has someone.
+    $token = ContextToken::decode(recorderConfig((string) SessionReplay::recorder(['user' => $other, 'tenant' => $team]))['token']);
+
+    expect($token->userId)->toBe((string) $other->id)->and($token->tenantId)->toBe((string) $team->id);
+});
+
+it('passes the app\'s privacy, consent and size settings to the browser', function () {
+    config()->set('session-replay.consent', 'opt-in');
+    config()->set('session-replay.privacy.mask_all_text', true);
+    config()->set('session-replay.capture.console', []);
+    config()->set('session-replay.context.enabled', false);
+    config()->set('session-replay.sample_rate', 0.25);
+
+    $this->actingAs($this->user());
+
+    $config = recorderConfig((string) SessionReplay::recorder());
+
+    expect($config['consent'])->toBe('opt-in')
+        ->and($config['privacy']['maskAllText'])->toBeTrue()
+        ->and($config['capture']['console'])->toBe([])
+        ->and($config['cookie'])->toBeNull()
+        ->and($config['sampleRate'])->toBe(0.25);
+});
+
+it('escapes what goes into the script tag', function () {
+    SessionReplay::propertiesUsing(fn () => ['note' => '</script><script>alert(1)</script>']);
+
+    $this->actingAs($this->user());
+
+    expect((string) SessionReplay::recorder())->not->toContain('</script><script>alert');
+});
+
+it('compiles the Blade directive with and without options', function () {
+    expect(Blade::compileString('@sessionReplay'))->toContain('->recorder([])')
+        ->and(Blade::compileString("@sessionReplay(['nonce' => \$nonce])"))->toContain("->recorder(['nonce' => \$nonce])");
+});

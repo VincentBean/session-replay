@@ -1,0 +1,208 @@
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recording
+    |--------------------------------------------------------------------------
+    |
+    | The master switch, the share of browser sessions that are recorded
+    | (decided once per session, in the browser) and whether people who are
+    | not signed in are recorded at all. SessionReplay::recordWhen() narrows
+    | it further per request.
+    |
+    */
+
+    'enabled' => env('SESSION_REPLAY_ENABLED', true),
+
+    'sample_rate' => (float) env('SESSION_REPLAY_SAMPLE_RATE', 1.0),
+
+    'guests' => (bool) env('SESSION_REPLAY_GUESTS', false),
+
+    // Request paths (Str::is patterns) that never get the recorder. The package's own pages are always left out.
+    'except' => [
+        // 'admin/secrets*',
+    ],
+
+    // Minutes without activity after which the browser starts a new recording.
+    'idle_timeout' => 30,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Consent
+    |--------------------------------------------------------------------------
+    |
+    | "always": recording starts with the page (a product used under a
+    | contract that covers it). "opt-in": the recorder loads but waits for
+    | window.SessionReplay.consent(true), and remembers the answer.
+    |
+    */
+
+    'consent' => env('SESSION_REPLAY_CONSENT', 'always'),
+
+    // Leave people alone who send the Global Privacy Control signal.
+    'respect_gpc' => false,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Privacy
+    |--------------------------------------------------------------------------
+    |
+    | Inputs are masked by default and password inputs always are. Anything
+    | matching mask_text_selector has its text replaced with asterisks,
+    | anything matching block_selector is recorded as an empty box of the
+    | same size, anything matching ignore_selector records no input events.
+    | mask_all_text records layout only.
+    |
+    */
+
+    'privacy' => [
+        'mask_all_inputs' => true,
+        'mask_all_text' => false,
+        'mask_text_selector' => '[data-replay-mask], [data-replay-mask] *',
+        'block_selector' => '[data-replay-block]',
+        'ignore_selector' => '[data-replay-ignore]',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | What is captured besides the DOM
+    |--------------------------------------------------------------------------
+    */
+
+    'capture' => [
+        // console.* levels recorded with the session ("error" calls become "console" markers); [] turns the console off.
+        'console' => ['error'],
+        // Uncaught errors and unhandled promise rejections as "error" markers.
+        'errors' => true,
+        // Failed Livewire requests as "request" markers (when Livewire is on the page).
+        'livewire' => true,
+        // LCP, INP and CLS as "vital" markers.
+        'vitals' => true,
+        // Three or more clicks on the same spot within 700 ms.
+        'rage_clicks' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Size
+    |--------------------------------------------------------------------------
+    |
+    | Stylesheets are stored once per content hash instead of inside every
+    | snapshot, and attributes the player never uses (Livewire snapshots,
+    | Alpine expressions) are dropped. Both only change what is stored, not
+    | what the replay looks like.
+    |
+    */
+
+    'size' => [
+        'dedupe_stylesheets' => true,
+        // Stylesheets smaller than this many bytes stay inline.
+        'dedupe_min_bytes' => 2048,
+        // Attribute names to drop; * is a wildcard. x-cloak stays (stylesheets select on it).
+        'strip_attributes' => ['wire:*', 'x-*', '@*', ':*', 'ax-load*'],
+        'keep_attributes' => ['x-cloak'],
+        // rrweb sampling: mousemove and scroll in ms, input "last" keeps the final value of a burst.
+        'sampling' => [
+            'mousemove' => 50,
+            'scroll' => 150,
+            'media' => 800,
+            'input' => 'last',
+        ],
+    ],
+
+    // Milliseconds between uploads while the page is open.
+    'flush_interval' => 5000,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Routes
+    |--------------------------------------------------------------------------
+    |
+    | Everything lives under one prefix: the recorder and player scripts,
+    | the ingest endpoints (ingest.middleware) and the viewer
+    | (viewer.middleware plus the viewSessionReplay gate).
+    |
+    */
+
+    'path' => 'session-replay',
+
+    'domain' => null,
+
+    'ingest' => [
+        'middleware' => ['web'],
+        // Requests per minute per person (or IP for guests); null turns the limiter off.
+        'throttle' => 240,
+        // Largest upload the endpoint accepts, as sent (compressed), in kilobytes. Keep it under PHP's
+        // upload_max_filesize (2M by default), or PHP drops the file before the package sees it.
+        'max_batch_kb' => 1536,
+        // A recording stops growing here; the browser is told to stop.
+        'max_session_mb' => 50,
+        // Largest stylesheet upload, as sent (compressed); it may inflate to eight times this.
+        'max_asset_kb' => 1536,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
+    |
+    | Event chunks and stylesheets go to a filesystem disk as gzip files; the
+    | index (sessions, chunks, markers, assets) goes to the database. Point
+    | connection at your central connection in a database-per-tenant app.
+    |
+    */
+
+    'storage' => [
+        'disk' => env('SESSION_REPLAY_DISK', 'local'),
+        'directory' => 'session-replay',
+        'connection' => env('SESSION_REPLAY_DB_CONNECTION'),
+    ],
+
+    // Auto-run the package migrations; set false to publish and run them yourself.
+    'run_migrations' => true,
+
+    'retention' => [
+        // session-replay:prune deletes recordings older than this, except pinned ones.
+        'days' => 30,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Viewer
+    |--------------------------------------------------------------------------
+    |
+    | The built-in list and player. Who may open them is decided by the
+    | viewSessionReplay gate; until your app defines it, only the local
+    | environment is let in. enabled=false removes the pages and keeps the
+    | <x-session-replay::player> component and its data routes.
+    |
+    */
+
+    'viewer' => [
+        'enabled' => true,
+        'middleware' => ['web', 'auth'],
+        'guard' => null,
+        'per_page' => 25,
+        // The attribute shown for a person in the list; falls back to the key.
+        'user_label' => 'email',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log context
+    |--------------------------------------------------------------------------
+    |
+    | While a recording runs, every request carries its id in a cookie and the
+    | package adds the id and the viewer URL to Laravel's Context, so log
+    | lines and error reports point at the replay.
+    |
+    */
+
+    'context' => [
+        'enabled' => true,
+        'cookie' => 'session_replay_id',
+    ],
+
+];

@@ -1,0 +1,93 @@
+{
+    "name": "packstub/session-replay",
+    "description": "Session replay for Laravel: record what a person did in the browser with rrweb, keep the recording on your own disk and database, and watch it behind a gate you define — masked inputs by default, errors, failed Livewire requests and web vitals marked on the timeline, a link to the replay in every log line. packstub/filament-session-replay adds the sessions to a Filament panel.",
+    "keywords": [
+        "laravel",
+        "session-replay",
+        "session-recording",
+        "rrweb",
+        "livewire",
+        "debugging",
+        "support",
+        "self-hosted"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/icaliman"
+        }
+    ],
+    "authors": [
+        {
+            "name": "Packstub",
+            "email": "support@packstub.dev",
+            "homepage": "https://packstub.dev"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "ext-zlib": "*",
+        "laravel/framework": "^12.0|^13.0",
+        "spatie/laravel-package-tools": "^1.93"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0|^11.2",
+        "laravel/pint": "^1.13",
+        "pestphp/pest": "^4.0|^5.1",
+        "pestphp/pest-plugin-laravel": "^4.0|^5.0",
+        "orchestra/pest-plugin-testbench": "^4.0|^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Packstub\\SessionReplay\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Packstub\\SessionReplay\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "test:filter": "pest --filter",
+        "lint": "vendor/bin/pint",
+        "lint:test": "vendor/bin/pint --test",
+        "serve": [
+            "@php vendor/bin/testbench workbench:build --ansi",
+            "@php vendor/bin/testbench serve --ansi"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Packstub\\SessionReplay\\SessionReplayServiceProvider"
+            ],
+            "aliases": {
+                "SessionReplay": "Packstub\\SessionReplay\\Facades\\SessionReplay"
+            }
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "homepage": "https://github.com/packstub/session-replay",
+    "support": {
+        "issues": "https://github.com/packstub/session-replay/issues",
+        "source": "https://github.com/packstub/session-replay",
+        "docs": "https://packstub.dev/docs/session-replay"
+    },
+    "suggest": {
+        "packstub/filament-session-replay": "The sessions inside a Filament v5 panel: a filterable resource, the player with timeline tabs, a relation manager for your users, masking declared on the form field.",
+        "packstub/filament-tenancy": "Database-per-tenant panels: recordings stay on the central connection with the workspace they belong to."
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
+}

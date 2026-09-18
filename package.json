@@ -1,0 +1,17 @@
+{
+    "name": "@packstub/session-replay",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "node build.mjs",
+        "dev": "node build.mjs --watch",
+        "test": "node --test resources/js/tests/*.test.js"
+    },
+    "devDependencies": {
+        "@rrweb/record": "^2.1.6",
+        "@rrweb/rrweb-plugin-console-record": "^2.1.6",
+        "esbuild": "^0.28.2",
+        "rrweb-player": "^2.1.6",
+        "web-vitals": "^6.2.2"
+    }
+}

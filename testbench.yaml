@@ -1,0 +1,15 @@
+laravel: '@testbench'
+
+providers:
+  - Packstub\SessionReplay\SessionReplayServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
+
+workbench:
+  start: /
+  install: true
+  discovers:
+    web: true
+    views: true
+  build:
+    - create-sqlite-db
+    - migrate:refresh

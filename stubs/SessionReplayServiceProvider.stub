@@ -1,0 +1,35 @@
+<?php
+
+namespace {{ namespace }}\Providers;
+
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+use Packstub\SessionReplay\Facades\SessionReplay;
+use Packstub\SessionReplay\Models\ReplaySession;
+
+class SessionReplayServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        /*
+         * Who may watch recordings. Called without a recording for the list
+         * and with it for a single replay and every file that belongs to it.
+         * Until this gate exists, only the local environment is let in.
+         */
+        Gate::define('viewSessionReplay', function ($user, ?ReplaySession $session = null): bool {
+            return in_array($user->email, [
+                //
+            ], true);
+        });
+
+        /*
+         * Narrow who is recorded (everyone signed in, by default).
+         */
+        // SessionReplay::recordWhen(fn ($user, $request): bool => ! $user?->is_staff);
+
+        /*
+         * The workspace a recording belongs to, in a multi-tenant app.
+         */
+        // SessionReplay::tenantUsing(fn ($request) => $request->user()?->currentTeam);
+    }
+}
