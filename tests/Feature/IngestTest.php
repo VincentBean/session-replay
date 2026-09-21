@@ -166,6 +166,17 @@ it('never lets one person write into another person\'s recording', function () {
     expect($session->refresh()->chunk_count)->toBe(2);
 });
 
+it('never lets a recording cross into another workspace', function () {
+    $ada = $this->user();
+    $acme = $this->team('Acme');
+    $id = (string) Str::uuid();
+
+    $this->ingest(['token' => $this->token($ada, $acme), 'session' => $id])->assertCreated();
+    $this->ingest(['token' => $this->token($ada, $this->team('Globex')), 'session' => $id, 'seq' => 1])->assertForbidden()->assertJson(['stop' => true]);
+    $this->ingest(['token' => $this->token($ada), 'session' => $id, 'seq' => 1])->assertForbidden();
+    $this->ingest(['token' => $this->token($ada, $acme), 'session' => $id, 'seq' => 1])->assertOk();
+});
+
 it('validates the session id, the sequence and the upload', function () {
     $this->ingest(['session' => 'not-a-uuid'])->assertUnprocessable();
     $this->ingest(['seq' => -1])->assertUnprocessable();

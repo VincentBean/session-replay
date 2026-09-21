@@ -70,6 +70,12 @@ class ContextToken
         return $this->userType === $userType && $this->userId === $userId;
     }
 
+    /** The same workspace (or the same "none") as the recording's first batch. */
+    public function sameTenantAs(?string $tenantType, ?string $tenantId): bool
+    {
+        return $this->tenantType === $tenantType && $this->tenantId === $tenantId;
+    }
+
     public function encode(): string
     {
         $payload = self::base64UrlEncode((string) json_encode([

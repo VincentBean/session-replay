@@ -55,6 +55,11 @@ class IngestController
             return $this->refuse(403, 'This recording belongs to someone else.', stop: true);
         }
 
+        // The recorder starts a new recording when the workspace changes; one that did not must not leak pages across.
+        if ($session !== null && ! $context->sameTenantAs($session->tenant_type, $session->tenant_id)) {
+            return $this->refuse(403, 'This recording belongs to another workspace.', stop: true);
+        }
+
         $limit = (int) config('session-replay.ingest.max_session_mb', 50) * 1024 * 1024;
 
         if ($session !== null && $session->bytes + strlen($body) > $limit) {

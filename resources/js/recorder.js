@@ -386,16 +386,24 @@ function schedule() {
 function describe(element) {
     if (!(element instanceof Element)) return 'unknown';
 
-    // What the author called it (alt, aria-label) reads better in a list than utility classes; never the text inside.
-    const name = (element.getAttribute('alt') || element.getAttribute('aria-label') || '').trim();
-    const masked = config.privacy.maskTextSelector && element.closest(config.privacy.maskTextSelector);
+    // A click lands on the label or the icon inside a control; the control is what was clicked.
+    element = element.closest('button, a, [role="button"], summary, label, input, select, textarea') || element;
 
-    if (name && !masked && !config.privacy.maskAllText) return `${element.tagName.toLowerCase()} "${name}"`.slice(0, 120);
+    const masked = config.privacy.maskAllText || (config.privacy.maskTextSelector && element.closest(config.privacy.maskTextSelector));
+    const tag = element.tagName.toLowerCase();
+
+    // What the author called it reads better in a list than utility classes: alt, aria-label, title, and a
+    // button's own caption. Never the text of anything else (a link or a cell may hold a name).
+    let name = (element.getAttribute('alt') || element.getAttribute('aria-label') || element.getAttribute('title') || '').trim();
+
+    if (!name && (tag === 'button' || element.getAttribute('role') === 'button')) name = (element.textContent || '').replace(/\s+/g, ' ').trim();
+
+    if (name && !masked) return `${tag} "${name.slice(0, 60)}"`;
 
     const id = element.id ? `#${element.id}` : '';
     const classes = typeof element.className === 'string' && element.className ? '.' + element.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
 
-    return `${element.tagName.toLowerCase()}${id}${classes}`.slice(0, 120);
+    return `${tag}${id}${classes}`.slice(0, 120);
 }
 
 let lastPage = null;

@@ -26,6 +26,18 @@ it('tells the browser when the person changed, so a tab that signs in starts a n
         ->and($second['identity'])->toBeString()->not->toBe($first['identity']);
 });
 
+it('tells the browser when the workspace or the impersonator changed, too', function () {
+    $this->actingAs($this->user());
+
+    $identity = fn (array $options): ?string => recorderConfig((string) SessionReplay::recorder($options))['identity'];
+    $acme = $this->team('Acme');
+
+    expect($identity(['tenant' => $acme]))->toBe($identity(['tenant' => $acme]))
+        ->not->toBe($identity([]))
+        ->not->toBe($identity(['tenant' => $this->team('Globex')]))
+        ->not->toBe($identity(['tenant' => $acme, 'impersonator' => 7]));
+});
+
 it('renders the recorder for a signed-in person, with a token that names them', function () {
     $user = $this->user();
 

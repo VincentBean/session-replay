@@ -78,7 +78,7 @@ A page served from a full-page cache (a response cache, a CDN, a static export) 
 ## Sessions, idle time and sampling
 
 - **One recording per browser tab.** The recording's id (a UUID) lives in `sessionStorage` and continues across page loads: every full page load adds a new snapshot to the same recording.
-- **One person per recording.** A tab that signs in, signs out or switches to another person starts a new recording on that page load, so a visitor's walk through your public pages and their signed-in session are two recordings.
+- **One person, one workspace per recording.** A tab that signs in, signs out, switches to another person, moves to another workspace or starts impersonating starts a new recording on that page load. A visitor's walk through your public pages and their signed-in session are two recordings, and a recording filed under one workspace never holds pages of another. The server holds the same line: an upload whose token names another person or workspace than the recording's first batch is refused.
 - **`idle_timeout`** (minutes, default 30): a tab without activity for longer starts a new recording on its next page load.
 - **`sample_rate`** (0 to 1, default 1): the share of recordings that are kept. The decision is made once, in the browser, when a recording starts, and stays with it.
 - **`flush_interval`** (milliseconds, default 5000, minimum 1000): how often events upload while the page is open. A batch also uploads when the tab is hidden and when the page goes away.
@@ -95,7 +95,7 @@ Markers are the moments worth jumping to. Each one is stored in `replay_markers`
 | `console` | `console.error(...)`. Other levels you add to `capture.console` are kept in the recording's events, without a marker. | `capture.console` (levels; `[]` turns the console off) |
 | `request` | A Livewire request that failed. Payload: status, URL. | `capture.livewire` |
 | `vital` | LCP, INP and CLS, with value and rating. | `capture.vitals` |
-| `rage-click` | Three or more clicks on the same spot within 700 ms. Label: the element, by its `alt` or `aria-label` when it has one (and is not masked), otherwise tag, id and classes. | `capture.rage_clicks` |
+| `rage-click` | Three or more clicks on the same spot within 700 ms. Label: the control that was clicked (the button around the icon, not the icon), named by its `alt`, `aria-label` or `title`, or by a button's own caption, as in `button "Save changes"`; tag, id and classes when it has no name or sits in a masked area. The text of links, cells and anything else is never used. | `capture.rage_clicks` |
 | `custom` | Your own, from the browser. | always |
 
 A recording's `error_count` counts `error` and `request` markers, `page_count` counts `navigation`, `rage_click_count` counts `rage-click`, and `lcp_ms`, `inp_ms` and `cls` keep the worst value measured.
