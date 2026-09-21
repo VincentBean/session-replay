@@ -1,5 +1,15 @@
 # Session Replay for Laravel
 
+<div class="filament-hidden">
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/packstub/session-replay.svg?style=flat-square)](https://packagist.org/packages/packstub/session-replay)
+[![Tests](https://img.shields.io/github/actions/workflow/status/packstub/session-replay/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/packstub/session-replay/actions/workflows/tests.yml)
+[![Total Downloads](https://img.shields.io/packagist/dt/packstub/session-replay.svg?style=flat-square)](https://packagist.org/packages/packstub/session-replay)
+[![License](https://img.shields.io/packagist/l/packstub/session-replay.svg?style=flat-square)](https://github.com/packstub/session-replay/blob/main/LICENSE.md)
+[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ea4aaa?style=flat-square&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/icaliman)
+
+</div>
+
 Record what a person did in the browser, keep the recording on your own disk and database, and watch it inside your own app, behind a gate you define. Built on [rrweb](https://github.com/rrweb-io/rrweb). Free and open source (MIT).
 
 "The form did nothing when I clicked save" becomes a 40-second replay with the console error and the failed Livewire request marked on the timeline.
@@ -16,7 +26,9 @@ Record what a person did in the browser, keep the recording on your own disk and
 - **Small recordings.** Stylesheets are stored once per SHA-256 of their content instead of inside every snapshot, attributes the player never uses (`wire:snapshot`, Alpine expressions) are dropped, batches are gzipped in the browser and stored and served as sent.
 - **A gate decides who watches.** `viewSessionReplay` receives the recording and guards the list, the player and every file behind them. Until your app defines it, only the local environment is let in.
 - **A link in every log line.** While a recording runs, its id and URL sit in Laravel's `Context`, so log lines and error reports point at the replay.
-- **Multi-tenant aware.** `SessionReplay::tenantUsing()` stores the workspace with the recording; the tables can live on your central connection.
+- **Multi-tenant aware.** `SessionReplay::tenantUsing()` stores the workspace with the recording, a recording never spans two workspaces, and the tables can live on your central connection.
+- **Friendly to cached pages.** The recorder's token lives as long as you say (`ingest.token_days`), and a guest token can outlive a full-page cache.
+- **Five languages.** The viewer and the player in English, German, Spanish, Romanian and Russian.
 
 ## Quick start
 
