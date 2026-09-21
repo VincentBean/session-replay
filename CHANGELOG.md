@@ -6,6 +6,13 @@ All notable changes to `packstub/session-replay` are documented here.
 
 First version, not tagged yet.
 
+### Fixed
+
+- A tab whose person changed (a guest who signs in, a sign-out, an account switch) starts a new recording on that page load. Before, the tab kept its recording id, the server refused the batches as someone else's, and nothing was recorded until the tab had been idle.
+
+- A page left within the first seconds is in the replay: its snapshot uploads 0.8 s after the page starts recording instead of with the first interval. Before, it rode on the unload request, which browsers cancel above 64 KB.
+- Uploads no longer fail with "database is locked" on SQLite with the database cache when a page sends two batches at once: the ingest throttle retries its counter.
+
 ### Added
 
 - **Recorder.** `@sessionReplay` before `</body>` records the page with rrweb 2: one recording per tab, continued across page loads until the tab sits idle (`idle_timeout`), a sticky sampling decision (`sample_rate`), `SessionReplay::recordWhen()`, `guests`, `except`, opt-in consent (`window.SessionReplay.consent(true)`), optional Global Privacy Control.

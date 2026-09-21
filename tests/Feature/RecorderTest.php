@@ -13,6 +13,19 @@ function recorderConfig(string $html): array
     return json_decode($match[1] ?? 'null', true) ?? [];
 }
 
+it('tells the browser when the person changed, so a tab that signs in starts a new recording', function () {
+    config(['session-replay.guests' => true]);
+
+    $guest = recorderConfig($this->get('page')->getContent());
+    $first = recorderConfig($this->actingAs($this->user())->get('page')->getContent());
+    $again = recorderConfig($this->get('page')->getContent());
+    $second = recorderConfig($this->actingAs($this->user())->get('page')->getContent());
+
+    expect($guest['identity'])->toBeNull()
+        ->and($first['identity'])->toBeString()->toBe($again['identity'])
+        ->and($second['identity'])->toBeString()->not->toBe($first['identity']);
+});
+
 it('renders the recorder for a signed-in person, with a token that names them', function () {
     $user = $this->user();
 

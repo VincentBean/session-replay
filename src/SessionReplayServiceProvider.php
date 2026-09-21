@@ -17,6 +17,7 @@ use Packstub\SessionReplay\Http\Controllers\ScriptController;
 use Packstub\SessionReplay\Http\Controllers\ViewerController;
 use Packstub\SessionReplay\Http\Middleware\AddReplayContext;
 use Packstub\SessionReplay\Http\Middleware\AuthorizeViewer;
+use Packstub\SessionReplay\Http\Middleware\ThrottleIngest;
 use Packstub\SessionReplay\Support\ContextToken;
 use Packstub\SessionReplay\Support\ReplayStorage;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
@@ -111,7 +112,7 @@ class SessionReplayServiceProvider extends PackageServiceProvider
         ]), function () use ($uuid): void {
             Route::get('scripts/{file}', ScriptController::class)->where('file', '[a-z.]+')->name('script');
 
-            Route::middleware([...(array) config('session-replay.ingest.middleware', []), 'throttle:session-replay'])->group(function (): void {
+            Route::middleware([...(array) config('session-replay.ingest.middleware', []), ThrottleIngest::class.':session-replay'])->group(function (): void {
                 Route::post('ingest', [IngestController::class, 'store'])->name('ingest');
                 Route::post('ingest/asset', [IngestController::class, 'asset'])->name('ingest.asset');
             });

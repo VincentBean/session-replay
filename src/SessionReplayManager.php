@@ -151,6 +151,8 @@ class SessionReplayManager
 
         $config = [
             'token' => $token->encode(),
+            // Who the token was signed for, so the browser starts a new recording when the person changes.
+            'identity' => $user === null ? null : substr(hash('sha256', $user->getMorphClass().'|'.$user->getKey().'|'.config('app.key')), 0, 16),
             'ingestUrl' => $this->route('ingest'),
             'assetUrl' => $this->route('ingest.asset'),
             'sampleRate' => (float) config('session-replay.sample_rate', 1.0),

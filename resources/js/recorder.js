@@ -12,6 +12,7 @@ import { EVENT_FULL_SNAPSHOT, assetPlaceholder, attributeMatcher, stripAttribute
 
 const config = window.__sessionReplay;
 const STORAGE_KEY = 'sr:session';
+const FIRST_FLUSH_MS = 800;
 const CONSENT_KEY = 'sr:consent';
 const CONSOLE_PLUGIN = 'rrweb/console@1';
 const KEEPALIVE_LIMIT = 60 * 1024;
@@ -91,9 +92,11 @@ function loadSession() {
         state = null;
     }
 
-    if (!state || typeof state.id !== 'string' || now - state.lastActivity > config.idleTimeout) {
+    // A tab that signed in, signed out or switched person since the last page starts a new recording:
+    // the server keeps one person per recording and would refuse the rest of this one.
+    if (!state || typeof state.id !== 'string' || now - state.lastActivity > config.idleTimeout || (state.identity ?? null) !== (config.identity ?? null)) {
         // The sampling decision is made once and kept with the session.
-        state = { id: uuid(), seq: 0, lastActivity: now, sampled: Math.random() < config.sampleRate };
+        state = { id: uuid(), seq: 0, lastActivity: now, sampled: Math.random() < config.sampleRate, identity: config.identity ?? null };
     }
 
     return state;
@@ -383,6 +386,12 @@ function schedule() {
 function describe(element) {
     if (!(element instanceof Element)) return 'unknown';
 
+    // What the author called it (alt, aria-label) reads better in a list than utility classes; never the text inside.
+    const name = (element.getAttribute('alt') || element.getAttribute('aria-label') || '').trim();
+    const masked = config.privacy.maskTextSelector && element.closest(config.privacy.maskTextSelector);
+
+    if (name && !masked && !config.privacy.maskAllText) return `${element.tagName.toLowerCase()} "${name}"`.slice(0, 120);
+
     const id = element.id ? `#${element.id}` : '';
     const classes = typeof element.className === 'string' && element.className ? '.' + element.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
 
@@ -502,6 +511,12 @@ function start() {
 
     markPage();
     schedule();
+
+    // The page snapshot goes up early and compressed: left to the unload request it is too large for keepalive
+    // and a page left within the first interval would be missing from the replay.
+    setTimeout(() => {
+        if (!stopped && buffer.length) flush();
+    }, FIRST_FLUSH_MS);
 
     return true;
 }
