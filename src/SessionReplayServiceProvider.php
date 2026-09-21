@@ -32,6 +32,7 @@ class SessionReplayServiceProvider extends PackageServiceProvider
             ->name('session-replay')
             ->hasConfigFile()
             ->hasViews('session-replay')
+            ->hasTranslations()
             ->discoversMigrations()
             // Auto-run by default; database-per-tenant apps set run_migrations=false, publish and run them centrally.
             ->runsMigrations((bool) config('session-replay.run_migrations', true))

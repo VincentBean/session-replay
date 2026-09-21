@@ -34,6 +34,7 @@ composer serve              # Testbench workbench on :8000: a page to record, th
 - Changelog headings are `## <version> — <date>`; the tag is `v<version>` on `main`.
 - Nothing here may import from `Filament\` or `Livewire\`; what needs a panel belongs in `packstub/filament-session-replay`. The recorder may *detect* Livewire in the browser.
 - Privacy defaults only ever get stricter inside a major. Every privacy control stays in this free package.
+- Strings live in `resources/lang/{en,de,es,ro,ru}/viewer.php` and `player.php` (`session-replay::viewer.*`); the player gets its strings from the Blade component as `data-labels`. A new string goes into all five languages; `ViewerTest` compares the key sets.
 - The gate guards data, not pages: any new route that returns recording content goes behind `AuthorizeViewer` with the recording bound.
 - Never add identity to the ingest request other than the signed token; never key a limit by IP (edge proxies hide it).
 - Config keys, migration file names, route names, the chunk format and the `/*sr-asset:<sha256>*/` placeholder are shared with the Filament package and with stored recordings; they must not change inside a major. Schema changes follow the workspace rule (final shape in `create_*`, guarded `add_*`).

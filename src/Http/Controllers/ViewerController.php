@@ -5,6 +5,7 @@ namespace Packstub\SessionReplay\Http\Controllers;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Packstub\SessionReplay\Facades\SessionReplay;
 use Packstub\SessionReplay\Models\ReplaySession;
 
 /** The built-in pages: a list and a player. Deliberately small; a panel does more. */
@@ -13,7 +14,7 @@ class ViewerController
     /** GET {path} */
     public function index(Request $request): View
     {
-        $sessions = ReplaySession::query()
+        $sessions = SessionReplay::visibleTo(ReplaySession::query())
             ->with('user')
             ->when($request->filled('user'), fn ($query) => $query->where('user_id', (string) $request->query('user')))
             ->when($request->boolean('errors'), fn ($query) => $query->withErrors())
@@ -42,7 +43,7 @@ class ViewerController
     protected function userLabel(ReplaySession $session): string
     {
         if ($session->user_id === null) {
-            return __('Guest');
+            return __('session-replay::viewer.guest');
         }
 
         $attribute = (string) config('session-replay.viewer.user_label', 'email');

@@ -57,7 +57,23 @@ SessionReplay::impersonatorUsing(fn ($request) => session('impersonated_by'));
 SessionReplay::propertiesUsing(fn ($request) => ['release' => config('app.version')]);
 ```
 
-All four are evaluated when the page renders and signed into the token the recorder uploads with, so the ingest endpoint never has to work out identity itself. A token is accepted for seven days.
+All four are evaluated when the page renders and signed into the token the recorder uploads with, so the ingest endpoint never has to work out identity itself. A token is accepted for seven days (`ingest.token_days`).
+
+### Cached pages
+
+A page served from a full-page cache (a response cache, a CDN, a static export) carries the token it was cached with. Two settings keep its uploads welcome:
+
+```php
+// config/session-replay.php
+'ingest' => [
+    // Longer than the longest time a page stays cached, origin and edge together.
+    'token_days' => 10,
+    // Guest pages cached for longer than that, or for good: a token that names nobody never expires.
+    'guest_tokens_expire' => false,
+],
+```
+
+`guest_tokens_expire` only ever applies to a token with no person, no workspace and no impersonator in it; a token that names someone always expires. Uploads with such a token are throttled per recording and size-limited like every other, and are refused while `guests` is off. Cache only guest pages: a cached page with a person's token in it would attribute every visitor's recording to that person.
 
 ## Sessions, idle time and sampling
 

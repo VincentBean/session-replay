@@ -3,6 +3,7 @@
 namespace Packstub\SessionReplay;
 
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -28,6 +29,8 @@ class SessionReplayManager
     protected ?Closure $propertiesUsing = null;
 
     protected ?Closure $urlUsing = null;
+
+    protected ?Closure $visibleUsing = null;
 
     /** Narrow who is recorded: fn (?Authenticatable $user, Request $request): bool. */
     public function recordWhen(Closure $callback): static
@@ -75,6 +78,32 @@ class SessionReplayManager
         $this->urlUsing = $callback;
 
         return $this;
+    }
+
+    /**
+     * Narrow the recordings a viewer finds in a list, in SQL so pages stay
+     * full: fn (Builder $query, mixed $viewer): void. The gate still decides
+     * about every recording that is opened; this only keeps the rows it would
+     * refuse out of sight.
+     */
+    public function visibleUsing(Closure $callback): static
+    {
+        $this->visibleUsing = $callback;
+
+        return $this;
+    }
+
+    /**
+     * @param  Builder<ReplaySession>  $query
+     * @return Builder<ReplaySession>
+     */
+    public function visibleTo(Builder $query, mixed $viewer = null): Builder
+    {
+        if ($this->visibleUsing) {
+            ($this->visibleUsing)($query, $viewer ?? $this->viewer());
+        }
+
+        return $query;
     }
 
     public function enabled(): bool

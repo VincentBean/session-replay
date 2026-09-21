@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ContextToken
 {
-    /** Tokens older than this are refused; a tab left open longer starts a new recording on its next page load. */
-    public const MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+    /** ingest.token_days when the config does not say; a tab left open longer starts a new recording on its next page load. */
+    public const DEFAULT_DAYS = 7;
 
     /** @param array<string, mixed> $properties */
     public function __construct(
@@ -45,6 +45,23 @@ class ContextToken
     public function isGuest(): bool
     {
         return $this->userId === null;
+    }
+
+    /** Names nobody: no person, no workspace, no impersonator. Only such a token may be exempt from expiry. */
+    public function isAnonymous(): bool
+    {
+        return $this->userId === null && $this->tenantId === null && $this->impersonatorId === null;
+    }
+
+    public function isExpired(): bool
+    {
+        if ($this->isAnonymous() && ! config('session-replay.ingest.guest_tokens_expire', true)) {
+            return false;
+        }
+
+        $days = max(1, (int) config('session-replay.ingest.token_days', self::DEFAULT_DAYS));
+
+        return $this->issuedAt < time() - $days * 24 * 60 * 60;
     }
 
     /** The same person (or the same "nobody") as the recording's first batch. */
@@ -81,11 +98,11 @@ class ContextToken
 
         $data = json_decode((string) self::base64UrlDecode($payload), true);
 
-        if (! is_array($data) || ! is_int($data['iat'] ?? null) || $data['iat'] < time() - self::MAX_AGE_SECONDS) {
+        if (! is_array($data) || ! is_int($data['iat'] ?? null)) {
             return null;
         }
 
-        return new self(
+        $token = new self(
             isset($data['u'][0]) ? (string) $data['u'][0] : null,
             isset($data['u'][1]) ? (string) $data['u'][1] : null,
             isset($data['t'][0]) ? (string) $data['t'][0] : null,
@@ -94,6 +111,8 @@ class ContextToken
             is_array($data['p'] ?? null) ? $data['p'] : [],
             $data['iat'],
         );
+
+        return $token->isExpired() ? null : $token;
     }
 
     protected static function sign(string $payload): string

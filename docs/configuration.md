@@ -61,6 +61,8 @@
 | `ingest.max_batch_kb` | `1536` | Largest upload accepted, as sent. |
 | `ingest.max_session_mb` | `50` | A recording stops growing here and is marked truncated. |
 | `ingest.max_asset_kb` | `1536` | Largest stylesheet accepted, as sent (compressed). |
+| `ingest.token_days` | `7` | Days the token a page was rendered with is accepted. Keep it longer than your full-page cache (see [Cached pages](recording.md#cached-pages)). |
+| `ingest.guest_tokens_expire` | `true` | `false`: a token that names nobody (no person, no workspace, no impersonator) never expires. |
 
 ## Storage
 
@@ -100,6 +102,17 @@
 | `SessionReplay::impersonatorUsing(fn ($request) => ...)` | The impersonator's key. |
 | `SessionReplay::propertiesUsing(fn ($request) => [...])` | Anything else to keep on the recording. |
 | `SessionReplay::urlUsing(fn (ReplaySession $session) => ...)` | Where replays are watched, when not the built-in viewer. |
+| `SessionReplay::visibleUsing(fn (Builder $query, $viewer) => ...)` | Narrow the recordings a viewer finds in a list. |
+
+## Languages
+
+The viewer and the player ship in English, German, Spanish, Romanian and Russian and follow the app's locale. To change a string or add a language, publish the files:
+
+```bash
+php artisan vendor:publish --tag=session-replay-translations
+```
+
+They land in `lang/vendor/session-replay/{locale}/viewer.php` and `player.php`. The player reads its strings from the `<x-session-replay::player>` component, so a page that embeds it is translated too.
 
 ## Commands
 

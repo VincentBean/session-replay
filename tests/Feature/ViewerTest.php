@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Packstub\SessionReplay\Facades\SessionReplay;
 use Packstub\SessionReplay\Models\ReplaySession;
@@ -137,4 +138,43 @@ it('serves the built scripts to anyone, with a long cache', function () {
     $this->get(route('session-replay.script', 'recorder.js'))->assertOk()->assertHeader('Cache-Control', 'immutable, max-age=31536000, public');
     $this->get(route('session-replay.script', 'player.css'))->assertOk();
     $this->get(route('session-replay.script', 'secrets.env'))->assertNotFound();
+});
+
+it('keeps recordings out of the list with visibleUsing, in the query', function () {
+    Gate::define('viewSessionReplay', fn ($user, ?ReplaySession $session = null) => $session === null || $session->user_id !== (string) $user->id);
+
+    $ada = $this->user(['email' => 'ada@example.com']);
+    $grace = $this->user(['email' => 'grace@example.com']);
+
+    $this->recording($ada);
+    $this->recording($grace);
+
+    SessionReplay::visibleUsing(fn ($query, $viewer) => $query->where('user_id', '!=', (string) $viewer->id));
+
+    $this->actingAs($ada)->get(route('session-replay.index'))->assertOk()->assertSee('grace@example.com')->assertDontSee('ada@example.com');
+
+    expect(SessionReplay::visibleTo(ReplaySession::query(), $grace)->count())->toBe(1);
+});
+
+it('speaks the app\'s language, in the pages and in the player', function () {
+    Gate::define('viewSessionReplay', fn ($user) => true);
+
+    $session = $this->recording($this->user());
+
+    app()->setLocale('de');
+
+    $this->actingAs($this->user());
+
+    $this->get(route('session-replay.index'))->assertSee('1 Aufzeichnung')->assertSee('Ansehen');
+    $this->get(route('session-replay.show', $session))->assertSee('Alle Aufzeichnungen')->assertSee('Aufzeichnung wird geladen', false);
+});
+
+it('ships every string in every language', function () {
+    foreach (['viewer', 'player'] as $file) {
+        $english = array_keys(Arr::dot(require __DIR__."/../../resources/lang/en/{$file}.php"));
+
+        foreach (['de', 'es', 'ro', 'ru'] as $locale) {
+            expect(array_keys(Arr::dot(require __DIR__."/../../resources/lang/{$locale}/{$file}.php")))->toBe($english);
+        }
+    }
 });

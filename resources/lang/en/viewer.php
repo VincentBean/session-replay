@@ -1,0 +1,41 @@
+<?php
+
+return [
+
+    'title' => 'Session Replay',
+    'guest' => 'Guest',
+    'all_recordings' => 'All recordings',
+    'count' => ':count recording|:count recordings',
+    'length' => 'Length',
+    'pages' => 'Pages',
+    'errors' => 'Errors',
+    'device' => 'Device',
+    'size' => 'Size',
+    'impersonated_by' => 'Impersonated by',
+    'impersonated_by_id' => 'Impersonated by #:id',
+    'impersonated' => 'impersonated',
+    'first_page' => 'First page',
+    'live' => 'live',
+    'truncated' => 'This recording reached its size limit and stops before the visit ended.',
+    'user_id' => 'User ID',
+    'from' => 'From',
+    'to' => 'To',
+    'with_errors' => 'With errors',
+    'filter' => 'Filter',
+    'reset' => 'Reset',
+    'empty' => 'No recordings yet. Put @sessionReplay before </body> in a layout and open a page.',
+    'person' => 'Person',
+    'started' => 'Started',
+    'vitals' => 'Vitals',
+    'rage_clicks' => 'Rage clicks',
+    'watch' => 'Watch',
+    'newer' => 'Newer',
+    'older' => 'Older',
+    'page_of' => 'Page :page of :pages',
+    'ratings' => [
+        'good' => 'good',
+        'needs-improvement' => 'needs improvement',
+        'poor' => 'poor',
+    ],
+
+];

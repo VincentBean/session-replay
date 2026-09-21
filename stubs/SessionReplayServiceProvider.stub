@@ -23,6 +23,11 @@ class SessionReplayServiceProvider extends ServiceProvider
         });
 
         /*
+         * When the gate refuses some recordings, keep them out of the list too.
+         */
+        // SessionReplay::visibleUsing(fn ($query, $viewer) => $query->where('tenant_id', $viewer->team_id));
+
+        /*
          * Narrow who is recorded (everyone signed in, by default).
          */
         // SessionReplay::recordWhen(fn ($user, $request): bool => ! $user?->is_staff);

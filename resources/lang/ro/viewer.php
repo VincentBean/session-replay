@@ -1,0 +1,41 @@
+<?php
+
+return [
+
+    'title' => 'Session Replay',
+    'guest' => 'Vizitator',
+    'all_recordings' => 'Toate înregistrările',
+    'count' => ':count înregistrare|:count înregistrări|:count de înregistrări',
+    'length' => 'Durată',
+    'pages' => 'Pagini',
+    'errors' => 'Erori',
+    'device' => 'Dispozitiv',
+    'size' => 'Dimensiune',
+    'impersonated_by' => 'Impersonat de',
+    'impersonated_by_id' => 'Impersonat de #:id',
+    'impersonated' => 'impersonat',
+    'first_page' => 'Prima pagină',
+    'live' => 'în direct',
+    'truncated' => 'Această înregistrare a atins limita de dimensiune și se oprește înainte de sfârșitul vizitei.',
+    'user_id' => 'ID utilizator',
+    'from' => 'De la',
+    'to' => 'Până la',
+    'with_errors' => 'Cu erori',
+    'filter' => 'Filtrează',
+    'reset' => 'Resetează',
+    'empty' => 'Nicio înregistrare încă. Pune @sessionReplay înainte de </body> într-un layout și deschide o pagină.',
+    'person' => 'Persoană',
+    'started' => 'Început',
+    'vitals' => 'Vitals',
+    'rage_clicks' => 'Clicuri nervoase',
+    'watch' => 'Urmărește',
+    'newer' => 'Mai noi',
+    'older' => 'Mai vechi',
+    'page_of' => 'Pagina :page din :pages',
+    'ratings' => [
+        'good' => 'bun',
+        'needs-improvement' => 'de îmbunătățit',
+        'poor' => 'slab',
+    ],
+
+];

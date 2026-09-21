@@ -48,7 +48,19 @@ Gate::define('viewSessionReplay', function ($user, ?ReplaySession $session = nul
 });
 ```
 
-The built-in list shows every recording to whoever may open it; when the gate narrows single recordings, narrow the list in your own page too (see [Your own page](#your-own-page)).
+The gate decides about one recording at a time, so by itself it cannot shorten a list. When it narrows single recordings, tell the list the same rule as a query, and rows the gate would refuse stay out of sight while every page stays full:
+
+```php
+use Illuminate\Database\Eloquent\Builder;
+use Packstub\SessionReplay\Facades\SessionReplay;
+
+SessionReplay::visibleUsing(function (Builder $query, $viewer): void {
+    $query->where('tenant_type', $viewer->currentTeam->getMorphClass())
+        ->where('tenant_id', (string) $viewer->currentTeam->getKey());
+});
+```
+
+The built-in list applies it, `packstub/filament-session-replay` applies it to its resource, relation manager and widget, and your own page can with `SessionReplay::visibleTo(ReplaySession::query())`. Without it the list shows every recording to whoever may open the list; opening one always asks the gate.
 
 Check the rule yourself with `SessionReplay::check()`:
 

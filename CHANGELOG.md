@@ -4,14 +4,7 @@ All notable changes to `packstub/session-replay` are documented here.
 
 ## Unreleased
 
-First version, not tagged yet.
-
-### Fixed
-
-- A tab whose person changed (a guest who signs in, a sign-out, an account switch) starts a new recording on that page load. Before, the tab kept its recording id, the server refused the batches as someone else's, and nothing was recorded until the tab had been idle.
-
-- A page left within the first seconds is in the replay: its snapshot uploads 0.8 s after the page starts recording instead of with the first interval. Before, it rode on the unload request, which browsers cancel above 64 KB.
-- Uploads no longer fail with "database is locked" on SQLite with the database cache when a page sends two batches at once: the ingest throttle retries its counter.
+First version.
 
 ### Added
 
@@ -23,4 +16,7 @@ First version, not tagged yet.
 - **Storage.** Gzip chunks on any filesystem disk, the index in four tables on a configurable connection, `session-replay:prune` with `retention.days` and pinned recordings.
 - **Watching.** `<x-session-replay::player>` and a built-in list and player behind the `viewSessionReplay` gate, which receives the recording and guards every data route; only the local environment is let in until the app defines it. `session-replay:install` publishes the provider with the gate.
 - **Log context.** The running recording's id and URL in Laravel's `Context`, so log lines and error reports link to the replay.
+- **Cached pages.** `ingest.token_days` (7) is how long the token a page was rendered with is accepted, and `ingest.guest_tokens_expire=false` lets a token that names nobody (no person, no workspace, no impersonator) live as long as the page cache that holds it.
+- **Lists that follow the gate.** `SessionReplay::visibleUsing(fn (Builder $query, $viewer) => ...)` keeps recordings the gate would refuse out of lists, in SQL; `SessionReplay::visibleTo($query)` applies it on your own page.
+- **Languages.** The viewer and the player in English, German, Spanish, Romanian and Russian, following the app's locale (`vendor:publish --tag=session-replay-translations`).
 - `HasSessionReplays`, `ReplaySessionStarted`, `SessionReplay::tenantUsing()`, `impersonatorUsing()`, `propertiesUsing()`, `userUsing()`, `urlUsing()`.

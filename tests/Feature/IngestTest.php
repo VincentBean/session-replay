@@ -113,10 +113,38 @@ it('refuses a token that is missing, forged, tampered with or too old', function
     $this->ingest(['token' => 'abc.def'])->assertUnauthorized();
     $this->ingest(['token' => rtrim(strtr(base64_encode('{"u":["x","1"],"iat":'.time().'}'), '+/', '-_'), '=').'.'.$signature])->assertUnauthorized();
 
-    $old = new ContextToken('user', '1', issuedAt: time() - ContextToken::MAX_AGE_SECONDS - 60);
+    $old = new ContextToken('user', '1', issuedAt: time() - 7 * 86400 - 60);
     $this->ingest(['token' => $old->encode()])->assertUnauthorized();
 
     expect(ReplaySession::query()->count())->toBe(0);
+});
+
+it('keeps a token valid for ingest.token_days, for pages that come out of a long-lived cache', function () {
+    $user = $this->user();
+    $nineDays = new ContextToken($user->getMorphClass(), (string) $user->id, issuedAt: time() - 9 * 86400);
+
+    $this->ingest(['token' => $nineDays->encode()])->assertUnauthorized();
+
+    config()->set('session-replay.ingest.token_days', 10);
+
+    $this->ingest(['token' => $nineDays->encode()])->assertCreated();
+});
+
+it('lets a token that names nobody outlive the limit only when the app says so', function () {
+    config()->set('session-replay.guests', true);
+
+    $old = time() - 400 * 86400;
+
+    $this->ingest(['token' => (new ContextToken(issuedAt: $old))->encode()])->assertUnauthorized();
+
+    config()->set('session-replay.ingest.guest_tokens_expire', false);
+
+    $this->ingest(['token' => (new ContextToken(issuedAt: $old))->encode()])->assertCreated();
+
+    // A workspace or an impersonator is identity too, and a person always is.
+    $this->ingest(['token' => (new ContextToken(tenantType: 'team', tenantId: '1', issuedAt: $old))->encode()])->assertUnauthorized();
+    $this->ingest(['token' => (new ContextToken(impersonatorId: '9', issuedAt: $old))->encode()])->assertUnauthorized();
+    $this->ingest(['token' => (new ContextToken('user', '1', issuedAt: $old))->encode()])->assertUnauthorized();
 });
 
 it('does not record guests unless the app says so', function () {
@@ -216,4 +244,11 @@ it('throttles per person, not per address', function () {
     $this->ingest(['token' => $ada])->assertCreated();
     $this->ingest(['token' => $ada])->assertStatus(429);
     $this->ingest(['token' => $this->token($this->user())])->assertCreated();
+});
+
+it('puts no web middleware on the upload routes, which carry no CSRF token', function () {
+    $middleware = app('router')->getRoutes()->getByName('session-replay.ingest')->gatherMiddleware();
+
+    expect($middleware)->not->toContain('web')
+        ->and((require __DIR__.'/../../config/session-replay.php')['ingest']['middleware'])->toBe([]);
 });

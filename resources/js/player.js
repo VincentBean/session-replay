@@ -20,15 +20,37 @@ const COLORS = {
     custom: '#64748b',
 };
 
-const LABELS = {
-    error: 'Error',
-    request: 'Request',
-    console: 'Console',
-    'rage-click': 'Rage click',
-    navigation: 'Page',
-    vital: 'Vital',
-    custom: 'Custom',
+// English, unless the element carries data-labels (the Blade component passes the app's language).
+const TEXT = {
+    loading: 'Loading the recording…',
+    forbidden: 'You are not allowed to watch this recording.',
+    failed: 'The recording could not be loaded.',
+    just_started: 'This recording just started; there is nothing to play yet.',
+    no_snapshot: 'This recording has no page snapshot to play.',
+    none_selected: 'Nothing of the selected kinds.',
+    none_marked: 'Nothing was marked in this recording.',
+    types: {
+        error: 'Error',
+        request: 'Request',
+        console: 'Console',
+        'rage-click': 'Rage click',
+        navigation: 'Page',
+        vital: 'Vital',
+        custom: 'Custom',
+    },
 };
+
+function labels(root) {
+    let given = {};
+
+    try {
+        given = JSON.parse(root.dataset.labels || '{}') || {};
+    } catch {
+        // Unreadable labels leave the English ones.
+    }
+
+    return { ...TEXT, ...given, types: { ...TEXT.types, ...(given.types || {}) } };
+}
 
 function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -97,7 +119,7 @@ async function load(manifest, progress) {
     return restoreAssets(events, texts);
 }
 
-function markerList(manifest, startedAt, seek) {
+function markerList(manifest, startedAt, seek, text) {
     const panel = element('aside', 'sr-markers');
     const filters = element('div', 'sr-markers__filters');
     const list = element('ol', 'sr-markers__list');
@@ -110,7 +132,7 @@ function markerList(manifest, startedAt, seek) {
         const visible = manifest.markers.filter((marker) => !hidden.has(marker.type));
 
         if (visible.length === 0) {
-            list.append(element('li', 'sr-markers__empty', manifest.markers.length ? 'Nothing of the selected kinds.' : 'Nothing was marked in this recording.'));
+            list.append(element('li', 'sr-markers__empty', manifest.markers.length ? text.none_selected : text.none_marked));
 
             return;
         }
@@ -123,7 +145,7 @@ function markerList(manifest, startedAt, seek) {
             button.type = 'button';
             dot.style.background = COLORS[marker.type] || COLORS.custom;
             button.append(dot, element('span', 'sr-marker__time', clock(offset)), element('span', 'sr-marker__label', marker.label));
-            button.title = `${LABELS[marker.type] || marker.type}: ${marker.label}`;
+            button.title = `${text.types[marker.type] || marker.type}: ${marker.label}`;
             // A second of lead-in, so the moment itself is seen happening.
             button.addEventListener('click', () => seek(Math.max(0, offset - 1000)));
 
@@ -135,7 +157,7 @@ function markerList(manifest, startedAt, seek) {
     };
 
     for (const type of types) {
-        const chip = element('button', 'sr-chip', `${LABELS[type] || type} ${manifest.markers.filter((marker) => marker.type === type).length}`);
+        const chip = element('button', 'sr-chip', `${text.types[type] || type} ${manifest.markers.filter((marker) => marker.type === type).length}`);
 
         chip.type = 'button';
         chip.style.setProperty('--sr-chip', COLORS[type] || COLORS.custom);
@@ -162,7 +184,8 @@ async function mount(root, options = {}) {
     root.dataset.srMounted = '1';
     root.classList.add('sr-player');
 
-    const status = element('p', 'sr-player__status', 'Loading the recording…');
+    const text = labels(root);
+    const status = element('p', 'sr-player__status', text.loading);
 
     root.replaceChildren(status);
 
@@ -171,15 +194,15 @@ async function mount(root, options = {}) {
 
     try {
         manifest = await json(manifestUrl);
-        events = await load(manifest, (done, total) => (status.textContent = `Loading the recording… ${done}/${total}`));
+        events = await load(manifest, (done, total) => (status.textContent = `${text.loading} ${done}/${total}`));
     } catch (error) {
-        status.textContent = error.status === 403 ? 'You are not allowed to watch this recording.' : 'The recording could not be loaded.';
+        status.textContent = error.status === 403 ? text.forbidden : text.failed;
 
         return null;
     }
 
     if (events.length < 2 || !events.some((event) => event.type === 2)) {
-        status.textContent = manifest.live ? 'This recording just started; there is nothing to play yet.' : 'This recording has no page snapshot to play.';
+        status.textContent = manifest.live ? text.just_started : text.no_snapshot;
 
         return null;
     }
@@ -209,7 +232,7 @@ async function mount(root, options = {}) {
     });
 
     if (root.dataset.markers !== 'false') {
-        root.append(markerList(manifest, startedAt, (offset) => player.goto(offset, true)));
+        root.append(markerList(manifest, startedAt, (offset) => player.goto(offset, true), text));
     }
 
     let resizing = null;

@@ -131,7 +131,9 @@ return [
     'domain' => null,
 
     'ingest' => [
-        'middleware' => ['web'],
+        // Extra middleware for the two upload routes. None is needed, and "web" would ask for a CSRF token
+        // the recorder does not send: identity comes from the token the page was rendered with.
+        'middleware' => [],
         // Requests per minute per person (or IP for guests); null turns the limiter off.
         'throttle' => 240,
         // Largest upload the endpoint accepts, as sent (compressed), in kilobytes. Keep it under PHP's
@@ -141,6 +143,12 @@ return [
         'max_session_mb' => 50,
         // Largest stylesheet upload, as sent (compressed); it may inflate to eight times this.
         'max_asset_kb' => 1536,
+        // Days the token a page was rendered with stays valid. A page served from a full-page cache carries
+        // the token it was cached with, so keep this longer than the cache's lifetime.
+        'token_days' => 7,
+        // false: a token that names nobody (no person, no workspace, no impersonator) never expires, for guest
+        // pages behind a long-lived cache. Such uploads are still throttled, size-limited and need guests on.
+        'guest_tokens_expire' => true,
     ],
 
     /*

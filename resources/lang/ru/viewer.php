@@ -1,0 +1,41 @@
+<?php
+
+return [
+
+    'title' => 'Session Replay',
+    'guest' => 'Гость',
+    'all_recordings' => 'Все записи',
+    'count' => ':count запись|:count записи|:count записей',
+    'length' => 'Длительность',
+    'pages' => 'Страницы',
+    'errors' => 'Ошибки',
+    'device' => 'Устройство',
+    'size' => 'Размер',
+    'impersonated_by' => 'Имперсонатор',
+    'impersonated_by_id' => 'Имперсонатор: #:id',
+    'impersonated' => 'имперсонация',
+    'first_page' => 'Первая страница',
+    'live' => 'в эфире',
+    'truncated' => 'Запись достигла предельного размера и обрывается до конца визита.',
+    'user_id' => 'ID пользователя',
+    'from' => 'С',
+    'to' => 'По',
+    'with_errors' => 'С ошибками',
+    'filter' => 'Фильтровать',
+    'reset' => 'Сбросить',
+    'empty' => 'Записей пока нет. Добавьте @sessionReplay перед </body> в шаблон и откройте страницу.',
+    'person' => 'Пользователь',
+    'started' => 'Начало',
+    'vitals' => 'Vitals',
+    'rage_clicks' => 'Яростные клики',
+    'watch' => 'Смотреть',
+    'newer' => 'Новее',
+    'older' => 'Старее',
+    'page_of' => 'Страница :page из :pages',
+    'ratings' => [
+        'good' => 'хорошо',
+        'needs-improvement' => 'требует улучшения',
+        'poor' => 'плохо',
+    ],
+
+];
