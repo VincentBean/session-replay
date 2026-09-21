@@ -31,8 +31,8 @@ export function assetHash(text) {
     return match ? match[1] : null;
 }
 
-/** ['wire:*', 'x-*'] → a test for an attribute name; names in `keep` always stay. */
-export function attributeMatcher(patterns = [], keep = []) {
+/** ['wire:*', 'x-cloak'] → a test for an attribute name: exact names, or a prefix when the pattern ends in *. */
+function nameTest(patterns) {
     const exact = new Set();
     const prefixes = [];
 
@@ -42,11 +42,19 @@ export function attributeMatcher(patterns = [], keep = []) {
         pattern.endsWith('*') ? prefixes.push(pattern.slice(0, -1)) : exact.add(pattern);
     }
 
-    const kept = new Set(keep);
-
     if (exact.size === 0 && prefixes.length === 0) return null;
 
-    return (name) => !kept.has(name) && (exact.has(name) || prefixes.some((prefix) => name.startsWith(prefix)));
+    return (name) => exact.has(name) || prefixes.some((prefix) => name.startsWith(prefix));
+}
+
+/** ['wire:*', 'x-*'] → a test for an attribute to drop; names matching `keep` always stay. */
+export function attributeMatcher(patterns = [], keep = []) {
+    const dropped = nameTest(patterns);
+    const kept = nameTest(keep);
+
+    if (dropped === null) return null;
+
+    return (name) => dropped(name) && !(kept && kept(name));
 }
 
 /** Every serialized node an event carries: the snapshot's tree or the trees a mutation added. */

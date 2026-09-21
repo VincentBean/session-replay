@@ -47,7 +47,7 @@
 | `size.dedupe_stylesheets` | `true` | Store stylesheets once per SHA-256 instead of inside every snapshot. |
 | `size.dedupe_min_bytes` | `2048` | Smaller stylesheets stay inline. |
 | `size.strip_attributes` | `['wire:*', 'x-*', '@*', ':*', 'ax-load*']` | Attribute names dropped before upload; `*` is a trailing wildcard. |
-| `size.keep_attributes` | `['x-cloak']` | Names that stay even when a pattern matches. |
+| `size.keep_attributes` | `['x-cloak', 'wire:loading*', 'wire:offline*', 'wire:dirty*']` | Names (or `prefix*`) that stay even when a pattern matches: what stylesheets select on. |
 | `size.sampling` | `['mousemove' => 50, 'scroll' => 150, 'media' => 800, 'input' => 'last']` | rrweb's sampling options: milliseconds between recorded mouse moves, scrolls and media events; `input: 'last'` keeps the final value of a burst. |
 
 ## Routes

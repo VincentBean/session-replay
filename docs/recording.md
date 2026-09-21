@@ -126,7 +126,7 @@ The recorder detects Livewire in the browser; the package itself does not depend
 
 - **Failed requests** become `request` markers with the status (a 419 after the session expired, a 500, a 503 when the network dropped).
 - **`wire:navigate`** swaps pages without a load. rrweb records the swap as ordinary DOM changes, and the recorder adds a `navigation` marker on `livewire:navigated`.
-- **Attributes the player never uses are dropped** before upload: `wire:*` (including `wire:snapshot` and `wire:effects`), `x-*`, `@*`, `:*` and `ax-load*`. The player runs no scripts, so they only cost bytes, and dropping `wire:snapshot` keeps component state out of recordings. `x-cloak` is kept because stylesheets select on it. Change the lists with `size.strip_attributes` and `size.keep_attributes`.
+- **Attributes the player never uses are dropped** before upload: `wire:*` (including `wire:snapshot` and `wire:effects`), `x-*`, `@*`, `:*` and `ax-load*`. The player runs no scripts, so they only cost bytes, and dropping `wire:snapshot` keeps component state out of recordings. `x-cloak`, `wire:loading*`, `wire:offline*` and `wire:dirty*` are kept because stylesheets select on them: Livewire hides its loading, offline and dirty indicators with a rule on those attributes, and a replay without them would show every spinner at once. Change the lists with `size.strip_attributes` and `size.keep_attributes`.
 - A widget that polls or animates constantly can be left out with `data-replay-block`.
 
 ## Content Security Policy

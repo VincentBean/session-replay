@@ -94,11 +94,33 @@ The models and the migrations both follow `storage.connection`. Keep the disk ce
 A full snapshot of a server-rendered page is mostly stylesheet. Four things keep recordings small:
 
 - **Stylesheets are stored once.** The recorder replaces every stylesheet of `size.dedupe_min_bytes` (2048) or more with a reference to the SHA-256 of its content. The server says which hashes it does not have, and the browser uploads only those. The server checks that the content matches the hash, so a stylesheet can never be stored under a name another recording points at. The player puts the text back before it plays. A deploy that changes your CSS simply adds one file.
-- **Attributes the player never uses are dropped** (`size.strip_attributes`): `wire:*`, `x-*`, `@*`, `:*`, `ax-load*`, except `size.keep_attributes` (`x-cloak`).
+- **Attributes the player never uses are dropped** (`size.strip_attributes`): `wire:*`, `x-*`, `@*`, `:*`, `ax-load*`, except `size.keep_attributes` (`x-cloak` and Livewire's `wire:loading*`, `wire:offline*` and `wire:dirty*`, which stylesheets select on).
 - **Comments, scripts and head metadata are left out** of snapshots.
 - **Mouse, scroll, media and input events are sampled** (`size.sampling`).
 
 Stylesheet deduplication needs `crypto.subtle`, which browsers provide on HTTPS and on `localhost`. Without it stylesheets stay inside the snapshots and everything else works the same.
+
+### What to expect
+
+Measured on a Filament 5 panel (a table of 50 rows, a modal form, a create page with a rich editor and a file upload; headless Chrome, everything above switched on). Stored means gzip on the disk.
+
+| What happens on the page | Stored |
+| --- | --- |
+| The first snapshot of the 50-row table page | 34 KB |
+| The Filament stylesheet, once for every recording | 65 KB |
+| The page open and nobody touching it | 0.2 KB per minute |
+| The same table polling every 2 s (`wire:poll`), a cell changing in every row each time | 8 KB per minute |
+| A search or a sort that re-renders the table | 10 to 30 KB each time, by how many rows come back |
+| An edit modal (four fields) opened, filled in and saved, the table refreshing behind it | about 16 KB each time |
+| A create page opened, a paragraph typed into the rich editor, a file uploaded | about 26 KB, 16 KB of it the page |
+| Another page, as a full page load | 8 to 34 KB, the size of its snapshot |
+| Another page with `wire:navigate` | about one and a half times that: the browser keeps the document and the swap is recorded as one large change |
+
+A visit is mostly looking, so whole recordings come out far below the busiest rows: the store's own numbers are 38 KB for a 39-second visit across four storefront pages and 24 KB for two pages of a customer panel. The lab's scripted hands never rest (a search or a sort every two seconds stored 430 KB per minute, a modal every five seconds 160 KB per minute); nobody keeps that up, so read the table per action and let `retention.days` and `sample_rate` set the total.
+
+**On the person's side.** The recorder is 32 KB of JavaScript (gzip), loaded with `defer`. With the CPU slowed down four times, the same scripted work with and without the recorder gave the same interaction latency (75th percentile 40 ms and 32 ms with it, 64 ms and 40 ms without it, which is noise) and about one second more main-thread work over 50 seconds of constant clicking. Uploads are compressed off the main thread by the browser (`CompressionStream`).
+
+The lab behind these numbers ships with the Filament package (`workbench/lab/measure.mjs`), so you can run it against your own pages.
 
 ## Limits
 

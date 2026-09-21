@@ -100,9 +100,10 @@ return [
         'dedupe_stylesheets' => true,
         // Stylesheets smaller than this many bytes stay inline.
         'dedupe_min_bytes' => 2048,
-        // Attribute names to drop; * is a wildcard. x-cloak stays (stylesheets select on it).
+        // Attribute names to drop; * is a wildcard. What a stylesheet selects on stays: x-cloak, and the
+        // attributes Livewire hides loading, offline and dirty indicators by (or every spinner would show).
         'strip_attributes' => ['wire:*', 'x-*', '@*', ':*', 'ax-load*'],
-        'keep_attributes' => ['x-cloak'],
+        'keep_attributes' => ['x-cloak', 'wire:loading*', 'wire:offline*', 'wire:dirty*'],
         // rrweb sampling: mousemove and scroll in ms, input "last" keeps the final value of a burst.
         'sampling' => [
             'mousemove' => 50,

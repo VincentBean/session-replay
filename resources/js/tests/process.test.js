@@ -41,7 +41,12 @@ const snapshot = () => ({
 });
 
 test('attributeMatcher honours wildcards, exact names and the keep list', () => {
-    const matches = attributeMatcher(['wire:*', 'x-*', '@*', ':*', 'ax-load*', 'data-secret'], ['x-cloak']);
+    const matches = attributeMatcher(['wire:*', 'x-*', '@*', ':*', 'ax-load*', 'data-secret'], ['x-cloak', 'wire:loading*']);
+
+    // Livewire hides [wire:loading] elements with a stylesheet rule; without the attribute every spinner shows.
+    assert.equal(matches('wire:loading'), false);
+    assert.equal(matches('wire:loading.delay'), false);
+    assert.equal(matches('wire:target'), true);
 
     assert.equal(matches('wire:snapshot'), true);
     assert.equal(matches('x-data'), true);
