@@ -1,7 +1,7 @@
 import { record } from '@rrweb/record';
 import { getRecordConsolePlugin } from '@rrweb/rrweb-plugin-console-record';
 import { onCLS, onINP, onLCP } from 'web-vitals';
-import { dropHiddenValues, redactUrl, redactUrls } from './lib/privacy.js';
+import { dropHiddenValues, redactUrl, redactUrlAttributes, redactUrls } from './lib/privacy.js';
 import { EVENT_FULL_SNAPSHOT, assetPlaceholder, attributeMatcher, stripAttributes, styleSlots } from './lib/process.js';
 
 /**
@@ -205,6 +205,7 @@ function emit(event) {
     consoleMarker(event);
     stripAttributes(event, matches);
     dropHiddenValues(event);
+    redactUrlAttributes(event, config.privacy.redactQuery, location.href);
 
     if (event.type === EVENT_META && event.data && event.data.href) event.data.href = redacted(event.data.href);
 

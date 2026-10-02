@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { REDACTED, dropHiddenValues, redactUrl, redactUrls } from '../lib/privacy.js';
+import { REDACTED, dropHiddenValues, redactUrl, redactUrlAttributes, redactUrls } from '../lib/privacy.js';
 
 const names = ['token', 'signature', 'code', 'email'];
 
@@ -51,4 +51,35 @@ test('hidden inputs lose their value in a snapshot and in added nodes', () => {
     dropHiddenValues(mutation);
 
     assert.equal(mutation.data.adds[0].node.attributes.value, undefined);
+});
+
+test('links, sources and form actions in the page are redacted, in snapshots and in changed attributes', () => {
+    const snapshot = {
+        type: 2,
+        data: {
+            node: {
+                type: 0,
+                childNodes: [
+                    { type: 2, tagName: 'a', attributes: { href: '/orders?token=abc#main', class: 'skip' }, childNodes: [] },
+                    { type: 2, tagName: 'form', attributes: { action: 'https://app.test/invite?signature=xyz' }, childNodes: [] },
+                    { type: 2, tagName: 'a', attributes: { href: '/orders?page=2' }, childNodes: [] },
+                ],
+            },
+        },
+    };
+
+    redactUrlAttributes(snapshot, names, 'https://app.test');
+
+    const [skip, form, plain] = snapshot.data.node.childNodes;
+
+    assert.equal(skip.attributes.href, `https://app.test/orders?token=${REDACTED}#main`);
+    assert.equal(skip.attributes.class, 'skip');
+    assert.equal(form.attributes.action, `https://app.test/invite?signature=${REDACTED}`);
+    assert.equal(plain.attributes.href, '/orders?page=2');
+
+    const change = { type: 3, data: { source: 0, adds: [], attributes: [{ id: 5, attributes: { href: '/verify?code=1' } }] } };
+
+    redactUrlAttributes(change, names, 'https://app.test');
+
+    assert.equal(change.data.attributes[0].attributes.href, `https://app.test/verify?code=${REDACTED}`);
 });

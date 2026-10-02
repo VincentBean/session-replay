@@ -63,7 +63,7 @@ return [
     | mask_all_text records layout only. Text typed into rich editors
     | (contenteditable) is masked like an input. The query parameters in
     | redact_query keep their name and lose their value in every URL the
-    | recorder sends.
+    | recorder sends, links and form actions in the page included.
     |
     */
 
