@@ -1,4 +1,5 @@
 .sr-player {
+    --sr-pointer: #4950f6;
     --sr-border: rgb(0 0 0 / 0.1);
     --sr-muted: rgb(0 0 0 / 0.55);
     --sr-hover: rgb(0 0 0 / 0.05);
@@ -129,4 +130,62 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* rrweb's dot under the cursor, in the same colour. */
+.sr-player .replayer-mouse::after {
+    background: var(--sr-pointer);
+}
+
+/* Where the replayed mouse clicked: a ring that spreads and a dot that lingers (sizes in recorded pixels). */
+.sr-player .sr-click {
+    position: absolute;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.sr-player .sr-click::before,
+.sr-player .sr-click::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.sr-player .sr-click::before {
+    width: 52px;
+    height: 52px;
+    border: 3px solid var(--sr-pointer);
+    animation: sr-click-ring 0.7s ease-out forwards;
+}
+
+.sr-player .sr-click::after {
+    width: 20px;
+    height: 20px;
+    background: var(--sr-pointer);
+    animation: sr-click-dot 1.6s ease-out forwards;
+}
+
+@keyframes sr-click-ring {
+    from {
+        opacity: 0.9;
+        transform: translate(-50%, -50%) scale(0.2);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes sr-click-dot {
+    0%,
+    60% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 0;
+    }
 }

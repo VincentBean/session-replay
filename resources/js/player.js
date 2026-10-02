@@ -1,6 +1,7 @@
 import Player from 'rrweb-player';
 import 'rrweb-player/dist/style.css';
 import './player.css';
+import { hasClass, livePoints, trailSegments } from './lib/pointer.js';
 import { referencedAssets, restoreAssets, sortEvents } from './lib/process.js';
 
 /**
@@ -176,6 +177,84 @@ function markerList(manifest, startedAt, seek, text) {
     return panel;
 }
 
+// How long (replay time) a stretch of the mouse trail stays, and how thick it is in recorded pixels.
+const TRAIL_MS = 1500;
+const TRAIL_WIDTH = 5;
+const CLICK_MS = 1600;
+
+/**
+ * Draws where the mouse went and where it clicked, on top of rrweb's replayer:
+ * a trail that fades along its length, and a ripple with a lingering dot on
+ * every click. rrweb calls drawMouseTail() and marks .replayer-mouse active
+ * only while playing, never while fast-forwarding to a seek, so neither shows
+ * up for moments that were skipped. The colour is --sr-pointer on the player.
+ */
+function pointer(player, root) {
+    const replayer = player.getReplayer?.();
+
+    // Another rrweb build: keep its own trail and click pulse.
+    if (!replayer || typeof replayer.drawMouseTail !== 'function' || !replayer.mouse || !replayer.wrapper) return;
+
+    const color = () => getComputedStyle(root).getPropertyValue('--sr-pointer').trim() || '#4950f6';
+    let points = [];
+    let frame = null;
+
+    const draw = () => {
+        frame = null;
+
+        const canvas = replayer.mouseTail;
+        const context = canvas?.getContext('2d');
+
+        if (!context) return;
+
+        const now = replayer.getCurrentTime();
+
+        points = livePoints(points, now, TRAIL_MS);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        // Butt ends: round ones overlap at every joint and show as beads along a fading line.
+        context.lineCap = 'butt';
+        context.lineJoin = 'round';
+        context.lineWidth = TRAIL_WIDTH;
+        context.strokeStyle = color();
+
+        for (const { from, to, alpha } of trailSegments(points, now, TRAIL_MS)) {
+            context.globalAlpha = alpha * 0.75;
+            context.beginPath();
+            context.moveTo(from.x, from.y);
+            context.lineTo(to.x, to.y);
+            context.stroke();
+        }
+
+        context.globalAlpha = 1;
+    };
+
+    const redraw = () => {
+        if (frame === null) frame = requestAnimationFrame(draw);
+    };
+
+    replayer.drawMouseTail = ({ x, y }) => {
+        points.push({ x, y, t: replayer.getCurrentTime() });
+        redraw();
+    };
+
+    // The player reports its time on every frame while playing and once after a seek.
+    player.addEventListener('ui-update-current-time', () => points.length && redraw());
+
+    const mouse = replayer.mouse;
+
+    new MutationObserver((records) => {
+        // rrweb removes and re-adds "active" for every click it plays.
+        if (!mouse.classList.contains('active') || !records.some((record) => !hasClass(record.oldValue, 'active'))) return;
+
+        const click = element('span', 'sr-click');
+
+        click.style.left = mouse.style.left;
+        click.style.top = mouse.style.top;
+        replayer.wrapper.append(click);
+        setTimeout(() => click.remove(), CLICK_MS);
+    }).observe(mouse, { attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+}
+
 async function mount(root, options = {}) {
     const manifestUrl = options.manifestUrl || root.dataset.manifest;
 
@@ -230,6 +309,8 @@ async function mount(root, options = {}) {
             tags: Object.fromEntries(Object.entries(COLORS).map(([type, color]) => [`sr:${type}`, color])),
         },
     });
+
+    pointer(player, root);
 
     if (root.dataset.markers !== 'false') {
         root.append(markerList(manifest, startedAt, (offset) => player.goto(offset, true), text));

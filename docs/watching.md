@@ -156,6 +156,16 @@ document.addEventListener('session-replay:ready', (event) => {
 });
 ```
 
+### Mouse trail and clicks
+
+The player draws where the mouse went as a line that fades over a second and a half, and marks every click with a ring that spreads and a dot that lingers. Both run on the replay's clock: they freeze on pause, keep pace at 2x to 8x, and nothing is drawn for a stretch a seek jumps over. The colour is `--sr-pointer` on the player:
+
+```css
+.sr-player {
+    --sr-pointer: #f59e0b;
+}
+```
+
 ### Links
 
 `$session->url()` is the recording's page in the built-in viewer. When replays are watched somewhere else (your own page, a panel), say where:
