@@ -16,7 +16,7 @@ Record what a person did in the browser, keep the recording on your own disk and
 
 > **Beta.** 1.0 is close and feedback is very welcome in the [issues](https://github.com/packstub/session-replay/issues). Until 1.0, names and config may still change between betas; the changelog says how to upgrade.
 
-- Docs: [packstub.dev/docs/session-replay](https://packstub.dev/docs/session-replay)
+- Docs: [docs/](https://github.com/packstub/session-replay/tree/main/docs)
 - Support: [GitHub issues](https://github.com/packstub/session-replay/issues)
 
 ## Features
@@ -102,7 +102,7 @@ See [Privacy](docs/privacy.md) for masking, consent and wording for your privacy
 
 ## In a Filament panel
 
-[packstub/filament-session-replay](https://packstub.dev/docs/filament-session-replay) puts the sessions inside a Filament v5 panel: a filterable resource, the player with timeline tabs, a relation manager for your users, masking declared on the form field. It requires this package and records through it.
+[packstub/filament-session-replay](https://github.com/packstub/filament-session-replay/tree/main/docs) puts the sessions inside a Filament v5 panel: a filterable resource, the player with timeline tabs, a relation manager for your users, masking declared on the form field. It requires this package and records through it.
 
 ## Alongside other tools
 

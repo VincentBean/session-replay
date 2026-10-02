@@ -10,7 +10,7 @@
 
 The package has no front-end build step. The recorder and the player ship prebuilt and are served by a route.
 
-**In a Filament panel**, install [packstub/filament-session-replay](https://packstub.dev/docs/filament-session-replay/installation) instead. It requires this package and registers the recorder per panel. Everything below applies there too.
+**In a Filament panel**, install [packstub/filament-session-replay](https://github.com/packstub/filament-session-replay/blob/main/docs/installation.md) instead. It requires this package and registers the recorder per panel. Everything below applies there too.
 
 ## Install
 

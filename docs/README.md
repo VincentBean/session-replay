@@ -6,7 +6,7 @@ Record what a person did in the browser with rrweb, keep the recording on your o
 - Packagist: [packstub/session-replay](https://packagist.org/packages/packstub/session-replay)
 - Support: [GitHub issues](https://github.com/packstub/session-replay/issues)
 
-In a Filament panel, [Filament Session Replay](https://packstub.dev/docs/filament-session-replay) puts the sessions, the player and the masking macros on top of this package.
+In a Filament panel, [Filament Session Replay](https://github.com/packstub/filament-session-replay/tree/main/docs) puts the sessions, the player and the masking macros on top of this package.
 
 ## What you get
 
