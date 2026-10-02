@@ -20,9 +20,16 @@ return [
 
     'guests' => (bool) env('SESSION_REPLAY_GUESTS', false),
 
-    // Request paths (Str::is patterns) that never get the recorder. The package's own pages are always left out.
+    // Request paths (Str::is patterns) that never get the recorder. The package's own pages are always left out,
+    // and so are, by default, the pages that carry a password-reset or verification link in their URL.
     'except' => [
-        // 'admin/secrets*',
+        '*password-reset*',
+        '*reset-password*',
+        '*forgot-password*',
+        'password/*',
+        '*email-verification*',
+        '*verify-email*',
+        'email/verify*',
     ],
 
     // Minutes without activity after which the browser starts a new recording.
@@ -53,16 +60,20 @@ return [
     | matching mask_text_selector has its text replaced with asterisks,
     | anything matching block_selector is recorded as an empty box of the
     | same size, anything matching ignore_selector records no input events.
-    | mask_all_text records layout only.
+    | mask_all_text records layout only. Text typed into rich editors
+    | (contenteditable) is masked like an input. The query parameters in
+    | redact_query keep their name and lose their value in every URL the
+    | recorder sends.
     |
     */
 
     'privacy' => [
         'mask_all_inputs' => true,
         'mask_all_text' => false,
-        'mask_text_selector' => '[data-replay-mask], [data-replay-mask] *',
+        'mask_text_selector' => '[data-replay-mask], [data-replay-mask] *, [contenteditable], [contenteditable] *',
         'block_selector' => '[data-replay-block]',
         'ignore_selector' => '[data-replay-ignore]',
+        'redact_query' => ['token', 'access_token', 'refresh_token', 'id_token', 'signature', 'code', 'state', 'password', 'secret', 'key', 'api_key', 'email'],
     ],
 
     /*
@@ -135,8 +146,14 @@ return [
         // Extra middleware for the two upload routes. None is needed, and "web" would ask for a CSRF token
         // the recorder does not send: identity comes from the token the page was rendered with.
         'middleware' => [],
-        // Requests per minute per person (or IP for guests); null turns the limiter off.
+        // Requests per minute per person (for guests: per rendered page); null turns the limiter off.
         'throttle' => 240,
+        // Megabytes one person may upload per day, as sent (compressed); null turns it off. A day of steady
+        // work in a panel is well under 100 MB.
+        'daily_mb' => 250,
+        // Megabytes all guests together may upload per day: guests cannot be told apart, so this is the cap
+        // that keeps a script from filling the disk. Raise it for a busy public site; null turns it off.
+        'guest_daily_mb' => 2048,
         // Largest upload the endpoint accepts, as sent (compressed), in kilobytes. Keep it under PHP's
         // upload_max_filesize (2M by default), or PHP drops the file before the package sees it.
         'max_batch_kb' => 1536,

@@ -26,6 +26,8 @@ class ContextToken
         public ?string $impersonatorId = null,
         public array $properties = [],
         public int $issuedAt = 0,
+        // Random per rendered page: what a guest's uploads are throttled by, since the client cannot choose it.
+        public ?string $nonce = null,
     ) {}
 
     /** @param array<string, mixed> $properties */
@@ -39,6 +41,7 @@ class ContextToken
             $impersonatorId,
             $properties,
             time(),
+            bin2hex(random_bytes(8)),
         );
     }
 
@@ -70,6 +73,18 @@ class ContextToken
         return $this->userType === $userType && $this->userId === $userId;
     }
 
+    /** The same impersonator (or none) as the recording's first batch. */
+    public function sameImpersonatorAs(?string $impersonatorId): bool
+    {
+        return $this->impersonatorId === $impersonatorId;
+    }
+
+    /** What the ingest limits count against: the person, or for guests the page render the token came from. */
+    public function throttleKey(): string
+    {
+        return $this->isGuest() ? 'guest:'.($this->nonce ?? 'none') : $this->userType.':'.$this->userId;
+    }
+
     /** The same workspace (or the same "none") as the recording's first batch. */
     public function sameTenantAs(?string $tenantType, ?string $tenantId): bool
     {
@@ -84,6 +99,7 @@ class ContextToken
             'i' => $this->impersonatorId,
             'p' => $this->properties,
             'iat' => $this->issuedAt,
+            'n' => $this->nonce,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
         return $payload.'.'.self::sign($payload);
@@ -116,6 +132,7 @@ class ContextToken
             isset($data['i']) ? (string) $data['i'] : null,
             is_array($data['p'] ?? null) ? $data['p'] : [],
             $data['iat'],
+            isset($data['n']) ? (string) $data['n'] : null,
         );
 
         return $token->isExpired() ? null : $token;

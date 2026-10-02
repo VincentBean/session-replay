@@ -195,6 +195,25 @@ it('refuses uploads over the batch limit and gzip that inflates past its ceiling
     expect(ReplaySession::query()->count())->toBe(0);
 });
 
+it('refuses gzip with a second member or trailing bytes, which a browser could decode past the checks', function () {
+    $events = json_encode($this->events());
+
+    $this->ingest(['events' => gzencode($events).gzencode(str_repeat('A', 100_000)), 'gzip' => false])->assertUnprocessable();
+    $this->ingest(['events' => gzencode($events).'trailing', 'gzip' => false])->assertUnprocessable();
+    $this->ingest(['events' => substr(gzencode($events), 0, -4), 'gzip' => false])->assertUnprocessable();
+
+    // A stylesheet whose first member matches the hash, with something else behind it.
+    $css = 'body{color:red}';
+
+    $this->post(route('session-replay.ingest.asset'), [
+        'token' => $this->token($this->user()),
+        'hash' => hash('sha256', $css),
+        'content' => UploadedFile::fake()->createWithContent('content', gzencode($css).gzencode('body{background:url(https://evil.test/x)}')),
+    ])->assertUnprocessable();
+
+    expect(ReplaySession::query()->count())->toBe(0)->and(ReplayAsset::query()->count())->toBe(0);
+});
+
 it('stops a recording at its size limit and marks it truncated', function () {
     $session = $this->recording($user = $this->user());
 
@@ -255,6 +274,45 @@ it('throttles per person, not per address', function () {
     $this->ingest(['token' => $ada])->assertCreated();
     $this->ingest(['token' => $ada])->assertStatus(429);
     $this->ingest(['token' => $this->token($this->user())])->assertCreated();
+});
+
+it('throttles guests by the page their token came from, never by a session id they make up', function () {
+    config()->set('session-replay.guests', true);
+    config()->set('session-replay.ingest.throttle', 2);
+
+    $page = $this->token(null);
+
+    // A fresh session id per request does not reset the limit.
+    $this->ingest(['token' => $page])->assertCreated();
+    $this->ingest(['token' => $page])->assertCreated();
+    $this->ingest(['token' => $page])->assertStatus(429);
+
+    // Another rendered page is another budget.
+    $this->ingest(['token' => $this->token(null)])->assertCreated();
+});
+
+it('stops a person, and all guests together, at the daily upload limit', function () {
+    config()->set('session-replay.guests', true);
+    config()->set('session-replay.ingest.daily_mb', 1);
+    config()->set('session-replay.ingest.guest_daily_mb', 1);
+
+    $ada = $this->token($this->user());
+    $noise = json_encode([str_repeat('x', 600 * 1024)]);
+
+    $this->ingest(['token' => $ada, 'events' => $noise, 'gzip' => false])->assertCreated();
+    $this->ingest(['token' => $ada, 'events' => $noise, 'gzip' => false])->assertStatus(429)->assertJson(['stop' => true]);
+    $this->ingest(['token' => $this->token($this->user())])->assertCreated();
+
+    $this->ingest(['token' => $this->token(null), 'events' => $noise, 'gzip' => false])->assertCreated();
+    $this->ingest(['token' => $this->token(null), 'events' => $noise, 'gzip' => false])->assertStatus(429);
+});
+
+it('never lets an impersonated recording and the person\'s own write into each other', function () {
+    $ada = $this->user();
+    $session = $this->recording($ada);
+
+    $this->ingest(['token' => $this->token($ada, null, '7'), 'session' => $session->id, 'seq' => 1])->assertForbidden();
+    $this->ingest(['token' => $this->token($ada), 'session' => $session->id, 'seq' => 1])->assertOk();
 });
 
 it('puts no web middleware on the upload routes, which carry no CSRF token', function () {

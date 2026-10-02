@@ -56,6 +56,20 @@ it('shows the list and the player to whoever the gate allows', function () {
     $this->actingAs($customer)->get(route('session-replay.index'))->assertForbidden();
 });
 
+it('links back to the filtered list, never to a page the Referer names', function () {
+    Gate::define('viewSessionReplay', fn () => true);
+
+    $session = $this->recording();
+    $filtered = route('session-replay.index').'?errors=1';
+
+    $this->actingAs($this->user());
+
+    $this->withHeader('referer', $filtered)->get(route('session-replay.show', $session))->assertSee('href="'.e($filtered).'"', false);
+    $this->withHeader('referer', 'https://evil.test/login')->get(route('session-replay.show', $session))
+        ->assertDontSee('evil.test')
+        ->assertSee('href="'.route('session-replay.index').'"', false);
+});
+
 it('passes the recording to the gate, for the page and for every file behind it', function () {
     $staff = $this->user(['is_staff' => true]);
     $mine = $this->recording($this->user());

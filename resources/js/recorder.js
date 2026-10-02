@@ -1,6 +1,7 @@
 import { record } from '@rrweb/record';
 import { getRecordConsolePlugin } from '@rrweb/rrweb-plugin-console-record';
 import { onCLS, onINP, onLCP } from 'web-vitals';
+import { dropHiddenValues, redactUrl, redactUrls } from './lib/privacy.js';
 import { EVENT_FULL_SNAPSHOT, assetPlaceholder, attributeMatcher, stripAttributes, styleSlots } from './lib/process.js';
 
 /**
@@ -11,6 +12,7 @@ import { EVENT_FULL_SNAPSHOT, assetPlaceholder, attributeMatcher, stripAttribute
  */
 
 const config = window.__sessionReplay;
+const EVENT_META = 4;
 const STORAGE_KEY = 'sr:session';
 const FIRST_FLUSH_MS = 800;
 const CONSENT_KEY = 'sr:consent';
@@ -202,6 +204,9 @@ function emit(event) {
     trackActivity(event);
     consoleMarker(event);
     stripAttributes(event, matches);
+    dropHiddenValues(event);
+
+    if (event.type === EVENT_META && event.data && event.data.href) event.data.href = redacted(event.data.href);
 
     const slots = config.size.dedupeStylesheets && canHash ? styleSlots(event, config.size.dedupeMinBytes) : [];
 
@@ -234,7 +239,7 @@ function takeBatch() {
         seq: session.seq++,
         events: buffer,
         meta: {
-            url: location.href,
+            url: redacted(location.href),
             viewport: { width: window.innerWidth, height: window.innerHeight },
             from: buffer[0].timestamp,
             to: buffer[buffer.length - 1].timestamp,
@@ -383,11 +388,19 @@ function schedule() {
     }, flushInterval);
 }
 
+/** The URL without the values of the query parameters privacy.redact_query lists. */
+function redacted(url) {
+    return redactUrl(url, config.privacy.redactQuery, location.href);
+}
+
 function describe(element) {
     if (!(element instanceof Element)) return 'unknown';
 
     // A click lands on the label or the icon inside a control; the control is what was clicked.
     element = element.closest('button, a, [role="button"], summary, label, input, select, textarea') || element;
+
+    // Inside a blocked region the replay shows an empty box; its captions stay out of the marker list too.
+    if (config.privacy.blockSelector && element.closest(config.privacy.blockSelector)) return element.tagName.toLowerCase();
 
     const masked = config.privacy.maskAllText || (config.privacy.maskTextSelector && element.closest(config.privacy.maskTextSelector));
     const tag = element.tagName.toLowerCase();
@@ -413,7 +426,10 @@ function markPage() {
     if (lastPage === location.href) return;
 
     lastPage = location.href;
-    mark('navigation', location.pathname + location.search, { url: location.href, title: document.title.slice(0, 200) });
+
+    const page = new URL(redacted(location.href));
+
+    mark('navigation', page.pathname + page.search, { url: page.href, title: document.title.slice(0, 200) });
 }
 
 function watchErrors() {
@@ -422,7 +438,12 @@ function watchErrors() {
         if (!event.message) return;
 
         lastError = { at: Date.now(), label: event.message };
-        mark('error', event.message, { source: event.filename, line: event.lineno, column: event.colno, stack: String(event.error?.stack || '').slice(0, 2000) });
+        mark('error', redactUrls(event.message, config.privacy.redactQuery), {
+            source: redacted(event.filename),
+            line: event.lineno,
+            column: event.colno,
+            stack: redactUrls(String(event.error?.stack || ''), config.privacy.redactQuery).slice(0, 2000),
+        });
     });
 
     window.addEventListener('unhandledrejection', (event) => {

@@ -56,6 +56,8 @@ abstract class TestCase extends Orchestra
         $router->get('login', fn () => 'login')->name('login');
         $router->middleware('web')->get('page', fn () => view('page'));
         $router->middleware('web')->get('admin/secrets/keys', fn () => view('page'));
+        $router->middleware('web')->get('admin/password-reset/reset', fn () => view('page'));
+        $router->middleware('web')->get('reset-password/{token}', fn () => view('page'));
     }
 
     protected function defineWebRoutes($router): void {}

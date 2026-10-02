@@ -34,9 +34,14 @@ class ViewerController
     /** GET {path}/{session} */
     public function show(ReplaySession $session): View
     {
+        $list = route('session-replay.index');
+        $previous = url()->previous();
+
         return view('session-replay::viewer.show', [
             'session' => $session->load('user'),
             'userLabel' => $this->userLabel($session),
+            // Back to the list as it was filtered; the previous URL comes from the Referer, so only the list itself.
+            'back' => $previous === $list || str_starts_with($previous, $list.'?') ? $previous : $list,
         ]);
     }
 

@@ -5,7 +5,7 @@
 @section('content')
     <header class="top">
         <h1>{{ $userLabel }} <span class="muted">· {{ $session->started_at?->toDayDateTimeString() }}</span></h1>
-        <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('session-replay.index') }}">← {{ __('session-replay::viewer.all_recordings') }}</a>
+        <a href="{{ $back }}">← {{ __('session-replay::viewer.all_recordings') }}</a>
     </header>
 
     <dl class="facts card">

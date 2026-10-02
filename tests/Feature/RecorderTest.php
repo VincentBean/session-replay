@@ -127,6 +127,23 @@ it('passes the app\'s privacy, consent and size settings to the browser', functi
         ->and($config['sampleRate'])->toBe(0.25);
 });
 
+it('leaves pages with a password-reset or verification link in their URL out by default', function () {
+    $this->actingAs($this->user());
+
+    $this->get('admin/password-reset/reset?email=ada@example.com&token=abc&signature=123')->assertOk()->assertDontSee('__sessionReplay', false);
+    $this->get('reset-password/abc123')->assertOk()->assertDontSee('__sessionReplay', false);
+    $this->get('page')->assertSee('__sessionReplay', false);
+});
+
+it('masks rich editors and redacts secret query parameters by default', function () {
+    $this->actingAs($this->user());
+
+    $privacy = recorderConfig((string) SessionReplay::recorder())['privacy'];
+
+    expect($privacy['maskTextSelector'])->toContain('[contenteditable]')
+        ->and($privacy['redactQuery'])->toContain('token', 'signature', 'code', 'state', 'email');
+});
+
 it('escapes what goes into the script tag', function () {
     SessionReplay::propertiesUsing(fn () => ['note' => '</script><script>alert(1)</script>']);
 

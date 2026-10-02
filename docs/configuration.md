@@ -9,7 +9,7 @@
 | `enabled` | `env('SESSION_REPLAY_ENABLED', true)` | The master switch. Off: the directive renders nothing and ingest refuses uploads. |
 | `sample_rate` | `env('SESSION_REPLAY_SAMPLE_RATE', 1.0)` | Share of recordings kept, decided once per recording in the browser. |
 | `guests` | `env('SESSION_REPLAY_GUESTS', false)` | Record people who are not signed in. |
-| `except` | `[]` | Request paths (`Str::is` patterns) that never get the recorder. The package's own pages are always left out. |
+| `except` | password-reset and verification pages | Request paths (`Str::is` patterns) that never get the recorder. The package's own pages are always left out. The default list covers `*password-reset*`, `*reset-password*`, `*forgot-password*`, `password/*`, `*email-verification*`, `*verify-email*` and `email/verify*`; a list you set replaces it, so keep those in yours. |
 | `idle_timeout` | `30` | Minutes without activity after which a tab starts a new recording. |
 | `flush_interval` | `5000` | Milliseconds between uploads while the page is open (minimum 1000). |
 
@@ -26,9 +26,10 @@
 | --- | --- | --- |
 | `privacy.mask_all_inputs` | `true` | Mask every input's value. Password inputs are masked regardless. |
 | `privacy.mask_all_text` | `false` | Mask every text node: layout-only recordings. |
-| `privacy.mask_text_selector` | `[data-replay-mask], [data-replay-mask] *` | Elements whose text is replaced with asterisks. |
+| `privacy.mask_text_selector` | `[data-replay-mask], [data-replay-mask] *, [contenteditable], [contenteditable] *` | Elements whose text is replaced with asterisks. Rich editors are in the default, so what people type there is masked like an input. |
 | `privacy.block_selector` | `[data-replay-block]` | Elements recorded as an empty box of the same size. |
 | `privacy.ignore_selector` | `[data-replay-ignore]` | Elements whose input events are not recorded. |
+| `privacy.redact_query` | `token`, `access_token`, `refresh_token`, `id_token`, `signature`, `code`, `state`, `password`, `secret`, `key`, `api_key`, `email` | Query parameters whose value is replaced with `redacted` in every URL the recorder sends. |
 
 ## Capture
 
@@ -57,7 +58,9 @@
 | `path` | `session-replay` | Prefix of every package route. |
 | `domain` | `null` | Restrict the routes to one domain. |
 | `ingest.middleware` | `[]` | Extra middleware for the two upload routes. None is needed: identity comes from the signed token. |
-| `ingest.throttle` | `240` | Uploads per minute per person (per recording for guests). `null` turns it off. |
+| `ingest.throttle` | `240` | Uploads per minute per person (for guests, per rendered page: a value in the signed token, not one the browser picks). `null` turns it off. |
+| `ingest.daily_mb` | `250` | Megabytes one person may upload per day, as sent. A day of steady work in a panel is well under 100 MB. `null` turns it off. |
+| `ingest.guest_daily_mb` | `2048` | Megabytes all guests together may upload per day. Guests cannot be told apart, so this is the cap that keeps a script from filling the disk. `null` turns it off. |
 | `ingest.max_batch_kb` | `1536` | Largest upload accepted, as sent. |
 | `ingest.max_session_mb` | `50` | A recording stops growing here and is marked truncated. |
 | `ingest.max_asset_kb` | `1536` | Largest stylesheet accepted, as sent (compressed). |

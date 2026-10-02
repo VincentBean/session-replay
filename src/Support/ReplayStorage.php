@@ -81,7 +81,13 @@ class ReplayStorage
         return $this->inflate($body, $maxRawBytes) === null ? null : $body;
     }
 
-    /** Inflate with a ceiling. */
+    /**
+     * Inflate with a ceiling. Only one complete gzip stream with nothing after
+     * it is accepted: a second member or trailing bytes would be stored and
+     * served as sent, and a browser that decodes every member would see more
+     * than was checked here (a stylesheet other than its hash, a batch past the
+     * ceiling). Small pieces keep the peak memory near the ceiling.
+     */
     public function inflate(string $gzip, int $maxRawBytes): ?string
     {
         $context = inflate_init(ZLIB_ENCODING_GZIP);
@@ -92,7 +98,11 @@ class ReplayStorage
 
         $raw = '';
 
-        foreach (str_split($gzip, 65536) as $piece) {
+        foreach (str_split($gzip, 8192) as $piece) {
+            if (inflate_get_status($context) === ZLIB_STREAM_END) {
+                return null;
+            }
+
             $inflated = @inflate_add($context, $piece);
 
             if ($inflated === false) {
@@ -104,6 +114,10 @@ class ReplayStorage
             if (strlen($raw) > $maxRawBytes) {
                 return null;
             }
+        }
+
+        if (inflate_get_status($context) !== ZLIB_STREAM_END || inflate_get_read_len($context) !== strlen($gzip)) {
+            return null;
         }
 
         return $raw;

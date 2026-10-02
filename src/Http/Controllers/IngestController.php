@@ -4,6 +4,7 @@ namespace Packstub\SessionReplay\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Packstub\SessionReplay\Facades\SessionReplay;
 use Packstub\SessionReplay\Models\ReplayAsset;
@@ -51,7 +52,11 @@ class IngestController
         /** @var ReplaySession|null $session */
         $session = ReplaySession::query()->find($sessionId);
 
-        if ($session !== null && ! $context->sameUserAs($session->user_type, $session->user_id)) {
+        if ($this->overDailyLimit($context, strlen($body))) {
+            return $this->refuse(429, 'The daily upload limit was reached.', stop: true);
+        }
+
+        if ($session !== null && (! $context->sameUserAs($session->user_type, $session->user_id) || ! $context->sameImpersonatorAs($session->impersonator_id))) {
             return $this->refuse(403, 'This recording belongs to someone else.', stop: true);
         }
 
@@ -111,6 +116,10 @@ class IngestController
             return $body;
         }
 
+        if ($this->overDailyLimit($context, strlen($body))) {
+            return $this->refuse(429, 'The daily upload limit was reached.', stop: true);
+        }
+
         $raw = str_starts_with($body, "\x1f\x8b") ? $this->storage->inflate($body, $maxKb * 1024 * self::ASSET_INFLATE_FACTOR) : $body;
 
         // The name is the content: nobody can store a stylesheet under a hash another recording points at.
@@ -148,6 +157,22 @@ class IngestController
         }
 
         return $context;
+    }
+
+    /** Counts the upload against the person's daily allowance (all guests share one) and says whether it is spent. */
+    protected function overDailyLimit(ContextToken $context, int $bytes): bool
+    {
+        $megabytes = $context->isGuest() ? config('session-replay.ingest.guest_daily_mb') : config('session-replay.ingest.daily_mb');
+
+        if (! $megabytes) {
+            return false;
+        }
+
+        $key = 'session-replay|bytes|'.now()->format('Y-m-d').'|'.($context->isGuest() ? 'guests' : $context->throttleKey());
+
+        Cache::add($key, 0, now()->addDay());
+
+        return (int) Cache::increment($key, $bytes) > (int) $megabytes * 1024 * 1024;
     }
 
     protected function upload(Request $request, string $field, int $maxKb): string|JsonResponse

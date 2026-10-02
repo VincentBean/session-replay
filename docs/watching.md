@@ -62,6 +62,8 @@ SessionReplay::visibleUsing(function (Builder $query, $viewer): void {
 
 The built-in list applies it, `packstub/filament-session-replay` applies it to its resource, relation manager and widget, and your own page can with `SessionReplay::visibleTo(ReplaySession::query())`. Without it the list shows every recording to whoever may open the list; opening one always asks the gate.
 
+**In a multi-tenant app, define `visibleUsing()` whenever someone who is not an operator may open the list.** A gate that lets every workspace admin open the list (`$session === null`) and checks the workspace only for a single recording keeps each replay safe, but the built-in list at `/session-replay` would still show every workspace's rows. When the recordings are watched in a Filament panel, turn the built-in pages off with `viewer.enabled = false`; the panel scopes its own lists.
+
 Check the rule yourself with `SessionReplay::check()`:
 
 ```php

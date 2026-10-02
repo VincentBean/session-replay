@@ -88,9 +88,9 @@ class SessionReplayServiceProvider extends PackageServiceProvider
                 return Limit::none();
             }
 
-            // Per person when the token names one, per recording for guests; never per IP (an edge proxy hides it).
-            $context = ContextToken::decode($request->input('token'));
-            $key = $context?->userId !== null ? $context->userType.':'.$context->userId : 'session:'.substr((string) $request->input('session'), 0, 36);
+            // Per person when the token names one, per rendered page for guests (a value the client cannot choose);
+            // never per IP (an edge proxy hides it). A request without a valid token is refused right after.
+            $key = ContextToken::decode($request->input('token'))?->throttleKey() ?? 'invalid';
 
             return Limit::perMinute((int) $perMinute)->by('session-replay|'.$key);
         });
