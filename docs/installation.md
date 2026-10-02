@@ -15,7 +15,7 @@ The package has no front-end build step. The recorder and the player ship prebui
 ## Install
 
 ```bash
-composer require packstub/session-replay
+composer require "packstub/session-replay:^1.0@beta"
 php artisan session-replay:install
 ```
 
